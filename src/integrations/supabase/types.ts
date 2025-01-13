@@ -9,7 +9,162 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      file_tags: {
+        Row: {
+          file_id: string
+          tag_id: string
+        }
+        Insert: {
+          file_id: string
+          tag_id: string
+        }
+        Update: {
+          file_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_tags_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      files: {
+        Row: {
+          content_type: string | null
+          created_at: string | null
+          created_by: string
+          folder_id: string | null
+          id: string
+          name: string
+          size: number | null
+          storage_path: string
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string | null
+          created_by: string
+          folder_id?: string | null
+          id?: string
+          name: string
+          size?: number | null
+          storage_path: string
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string | null
+          created_by?: string
+          folder_id?: string | null
+          id?: string
+          name?: string
+          size?: number | null
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "files_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folders: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          id: string
+          name: string
+          parent_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          id?: string
+          name: string
+          parent_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shares: {
+        Row: {
+          access_password: string
+          created_at: string | null
+          created_by: string
+          expires_at: string | null
+          file_id: string | null
+          id: string
+        }
+        Insert: {
+          access_password: string
+          created_at?: string | null
+          created_by: string
+          expires_at?: string | null
+          file_id?: string | null
+          id?: string
+        }
+        Update: {
+          access_password?: string
+          created_at?: string | null
+          created_by?: string
+          expires_at?: string | null
+          file_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shares_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tags: {
+        Row: {
+          created_by: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_by: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_by?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
