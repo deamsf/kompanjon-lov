@@ -1,18 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { File, Folder, Share, Tag, Upload, Filter, ArrowUpDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { File, Folder, Share, Tag, Upload, Filter, ArrowUpDown, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface FileItem {
   id: string;
   name: string;
   size?: number;
-  type?: string;
+  content_type?: string;
+  created_at?: string;
   tags: string[];
-  shared?: boolean;
 }
 
 const Index = () => {
@@ -20,6 +22,49 @@ const Index = () => {
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [sortField, setSortField] = useState<'name' | 'size' | 'type'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchFiles();
+  }, []);
+
+  const fetchFiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('files')
+        .select(`
+          id,
+          name,
+          size,
+          content_type,
+          created_at,
+          file_tags (
+            tags (
+              name
+            )
+          )
+        `);
+
+      if (error) throw error;
+
+      const formattedFiles = data.map((file: any) => ({
+        ...file,
+        tags: file.file_tags?.map((ft: any) => ft.tags.name) || [],
+      }));
+
+      setFiles(formattedFiles);
+    } catch (error) {
+      console.error('Error fetching files:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch files",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSort = (field: 'name' | 'size' | 'type') => {
     if (sortField === field) {
@@ -38,19 +83,31 @@ const Index = () => {
     );
   };
 
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return 'N/A';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let size = bytes;
+    let unitIndex = 0;
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex++;
+    }
+    return `${size.toFixed(1)} ${units[unitIndex]}`;
+  };
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Files</h1>
         <div className="flex gap-4">
-          <button className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90">
-            <Upload className="w-4 h-4" />
+          <Button>
+            <Upload className="w-4 h-4 mr-2" />
             Upload
-          </button>
-          <button className="flex items-center gap-2 border border-input bg-background px-4 py-2 rounded-lg hover:bg-accent hover:text-accent-foreground">
-            <Filter className="w-4 h-4" />
+          </Button>
+          <Button variant="outline">
+            <Filter className="w-4 h-4 mr-2" />
             Filter
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -71,16 +128,10 @@ const Index = () => {
                   <Share className="w-4 h-4" />
                   <span>Shared</span>
                 </div>
-                <Collapsible>
-                  <CollapsibleTrigger className="flex items-center gap-2 p-2 rounded-lg hover:bg-accent cursor-pointer w-full">
-                    <Tag className="w-4 h-4" />
-                    <span>Tags</span>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="pl-6 space-y-1">
-                    <div className="p-2 rounded-lg hover:bg-accent cursor-pointer">Documents</div>
-                    <div className="p-2 rounded-lg hover:bg-accent cursor-pointer">Images</div>
-                  </CollapsibleContent>
-                </Collapsible>
+                <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-accent cursor-pointer">
+                  <Tag className="w-4 h-4" />
+                  <span>Tags</span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -89,7 +140,16 @@ const Index = () => {
         {/* Main content */}
         <div className="col-span-9">
           <Card>
-            <CardContent className="p-0">
+            <CardContent className="p-6">
+              <div className="flex gap-4 mb-4">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Search files..."
+                    className="w-full"
+                    prefix={<Search className="w-4 h-4 text-muted-foreground" />}
+                  />
+                </div>
+              </div>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -115,11 +175,20 @@ const Index = () => {
                         <ArrowUpDown className="w-4 h-4" />
                       </div>
                     </TableHead>
-                    <TableHead>Shared</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {files.length === 0 ? (
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                          <p className="text-muted-foreground">Loading files...</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : files.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8">
                         <div className="flex flex-col items-center gap-2">
@@ -139,9 +208,15 @@ const Index = () => {
                         </TableCell>
                         <TableCell>{file.name}</TableCell>
                         <TableCell>{file.tags.join(', ')}</TableCell>
-                        <TableCell>{file.type}</TableCell>
-                        <TableCell>{file.size}</TableCell>
-                        <TableCell>{file.shared ? 'Yes' : 'No'}</TableCell>
+                        <TableCell>{file.content_type}</TableCell>
+                        <TableCell>{formatFileSize(file.size)}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="icon">
+                              <Share className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
