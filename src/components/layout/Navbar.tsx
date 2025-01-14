@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Shield } from "lucide-react";
 import {
   NavigationMenu,
@@ -14,7 +14,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 const Navbar = () => {
@@ -72,6 +71,9 @@ const Navbar = () => {
             <span className="text-sm font-medium">User</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => navigate("/preferences")}>
+              Preferences
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleSignOut}>
               Sign out
             </DropdownMenuItem>

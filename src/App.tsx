@@ -11,6 +11,7 @@ import Todo from "./pages/Todo";
 import Communication from "./pages/Communication";
 import Partners from "./pages/Partners";
 import Advice from "./pages/Advice";
+import Preferences from "./pages/Preferences";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/communication" element={<Communication />} />
           <Route path="/partners" element={<Partners />} />
           <Route path="/advice" element={<Advice />} />
+          <Route path="/preferences" element={<Preferences />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
