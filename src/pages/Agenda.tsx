@@ -64,7 +64,7 @@ const Agenda = () => {
           slotKeys.push(
             `${format(current, "yyyy-MM-dd")}-${format(current, "HH:mm")}`
           );
-          current = addDays(current, 30 * 60 * 1000); // Add 30 minutes
+          current = new Date(current.getTime() + 30 * 60 * 1000); // Add 30 minutes
         }
 
         return slotKeys;
@@ -75,22 +75,34 @@ const Agenda = () => {
   };
 
   const saveAvailabilitySlots = async () => {
+    const session = await supabase.auth.getSession();
+    const userId = session.data.session?.user.id;
+    
+    if (!userId) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to save availability slots",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Group consecutive slots into ranges
     const ranges = selectedTimeSlots.sort().reduce((acc: any[], slot) => {
       const [date, time] = slot.split("-");
       const current = new Date(`${date}T${time}`);
 
       if (acc.length === 0) {
-        return [{ start: current, end: addDays(current, 30 * 60 * 1000) }];
+        return [{ start: current, end: new Date(current.getTime() + 30 * 60 * 1000) }];
       }
 
       const lastRange = acc[acc.length - 1];
       if (current.getTime() === lastRange.end.getTime()) {
-        lastRange.end = addDays(current, 30 * 60 * 1000);
+        lastRange.end = new Date(current.getTime() + 30 * 60 * 1000);
         return acc;
       }
 
-      return [...acc, { start: current, end: addDays(current, 30 * 60 * 1000) }];
+      return [...acc, { start: current, end: new Date(current.getTime() + 30 * 60 * 1000) }];
     }, []);
 
     // Save ranges to database
@@ -98,6 +110,7 @@ const Agenda = () => {
       ranges.map((range) => ({
         start_time: range.start.toISOString(),
         end_time: range.end.toISOString(),
+        user_id: userId
       }))
     );
 
