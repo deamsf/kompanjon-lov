@@ -4,9 +4,12 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { File, Folder, Share, Tag, Upload, Filter, ArrowUpDown, Search } from "lucide-react";
+import { File, Folder, Share, Tag, Filter, ArrowUpDown, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { FileUploadButton } from "@/components/file-manager/FileUploadButton";
+import { TagsInput } from "@/components/file-manager/TagsInput";
+import { ShareModal } from "@/components/file-manager/ShareModal";
 
 interface FileItem {
   id: string;
@@ -23,15 +26,19 @@ const Index = () => {
   const [sortField, setSortField] = useState<'name' | 'size' | 'type'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [selectedFileForShare, setSelectedFileForShare] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchFiles();
-  }, []);
+  }, [sortField, sortDirection, searchTerm, selectedTags]);
 
   const fetchFiles = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('files')
         .select(`
           id,
@@ -46,6 +53,16 @@ const Index = () => {
           )
         `);
 
+      if (searchTerm) {
+        query = query.ilike('name', `%${searchTerm}%`);
+      }
+
+      if (selectedTags.length > 0) {
+        query = query.contains('file_tags.tags.name', selectedTags);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
 
       const formattedFiles = data.map((file: any) => ({
@@ -53,7 +70,18 @@ const Index = () => {
         tags: file.file_tags?.map((ft: any) => ft.tags.name) || [],
       }));
 
-      setFiles(formattedFiles);
+      // Sort files
+      const sortedFiles = formattedFiles.sort((a: any, b: any) => {
+        const aValue = a[sortField];
+        const bValue = b[sortField];
+        const modifier = sortDirection === 'asc' ? 1 : -1;
+
+        if (aValue < bValue) return -1 * modifier;
+        if (aValue > bValue) return 1 * modifier;
+        return 0;
+      });
+
+      setFiles(sortedFiles);
     } catch (error) {
       console.error('Error fetching files:', error);
       toast({
@@ -83,6 +111,11 @@ const Index = () => {
     );
   };
 
+  const handleShare = (fileId: string) => {
+    setSelectedFileForShare(fileId);
+    setShareModalOpen(true);
+  };
+
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return 'N/A';
     const units = ['B', 'KB', 'MB', 'GB'];
@@ -100,10 +133,10 @@ const Index = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Files</h1>
         <div className="flex gap-4">
-          <Button>
-            <Upload className="w-4 h-4 mr-2" />
-            Upload
-          </Button>
+          <FileUploadButton
+            onUploadComplete={() => fetchFiles()}
+            tags={selectedTags}
+          />
           <Button variant="outline">
             <Filter className="w-4 h-4 mr-2" />
             Filter
@@ -116,23 +149,14 @@ const Index = () => {
         <div className="col-span-3">
           <Card>
             <CardHeader>
-              <CardTitle>Folders</CardTitle>
+              <CardTitle>Tags</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-accent cursor-pointer">
-                  <Folder className="w-4 h-4" />
-                  <span>All Files</span>
-                </div>
-                <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-accent cursor-pointer">
-                  <Share className="w-4 h-4" />
-                  <span>Shared</span>
-                </div>
-                <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-accent cursor-pointer">
-                  <Tag className="w-4 h-4" />
-                  <span>Tags</span>
-                </div>
-              </div>
+              <TagsInput
+                value={selectedTags}
+                onChange={setSelectedTags}
+                placeholder="Filter by tags..."
+              />
             </CardContent>
           </Card>
         </div>
@@ -145,6 +169,8 @@ const Index = () => {
                 <div className="flex-1">
                   <Input
                     placeholder="Search files..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full"
                     prefix={<Search className="w-4 h-4 text-muted-foreground" />}
                   />
@@ -207,12 +233,24 @@ const Index = () => {
                           />
                         </TableCell>
                         <TableCell>{file.name}</TableCell>
-                        <TableCell>{file.tags.join(', ')}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {file.tags.map((tag) => (
+                              <Badge key={tag} variant="secondary">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
                         <TableCell>{file.content_type}</TableCell>
                         <TableCell>{formatFileSize(file.size)}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            <Button variant="ghost" size="icon">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleShare(file.id)}
+                            >
                               <Share className="w-4 h-4" />
                             </Button>
                           </div>
@@ -226,6 +264,17 @@ const Index = () => {
           </Card>
         </div>
       </div>
+
+      {selectedFileForShare && (
+        <ShareModal
+          fileId={selectedFileForShare}
+          isOpen={shareModalOpen}
+          onClose={() => {
+            setShareModalOpen(false);
+            setSelectedFileForShare(null);
+          }}
+        />
+      )}
     </div>
   );
 };
