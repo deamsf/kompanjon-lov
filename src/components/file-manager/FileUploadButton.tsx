@@ -29,8 +29,18 @@ export const FileUploadButton = ({
     if (tags.length > 0) formData.append('tags', tags.join(','));
 
     try {
+      // Get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No active session found');
+      }
+
       const { data, error } = await supabase.functions.invoke('upload-file', {
         body: formData,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) throw error;
