@@ -12,6 +12,30 @@ serve(async (req) => {
   }
 
   try {
+    // Create Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // Get the authorization header from the request
+    const authHeader = req.headers.get('authorization')?.split(' ')[1]
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'No authorization header' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
+    }
+
+    // Get the user from the JWT
+    const { data: { user }, error: userError } = await supabase.auth.getUser(authHeader)
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized', details: userError }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
+    }
+
     const formData = await req.formData()
     const file = formData.get('file')
     const folderId = formData.get('folderId')
@@ -23,11 +47,6 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
 
     const sanitizedFileName = file.name.replace(/[^\x00-\x7F]/g, '')
     const fileExt = sanitizedFileName.split('.').pop()
@@ -49,7 +68,7 @@ serve(async (req) => {
       )
     }
 
-    // Insert file metadata
+    // Insert file metadata with user ID
     const { data: fileData, error: fileError } = await supabase
       .from('files')
       .insert({
@@ -58,6 +77,7 @@ serve(async (req) => {
         content_type: file.type,
         size: file.size,
         folder_id: folderId || null,
+        created_by: user.id, // Add the user ID here
       })
       .select()
       .single()
@@ -88,7 +108,10 @@ serve(async (req) => {
       if (newTags.length > 0) {
         const { data: createdTags, error: createTagsError } = await supabase
           .from('tags')
-          .insert(newTags.map(name => ({ name })))
+          .insert(newTags.map(name => ({ 
+            name,
+            created_by: user.id // Add user ID for new tags
+          })))
           .select()
 
         if (createTagsError) {
