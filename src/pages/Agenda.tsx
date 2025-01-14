@@ -1,25 +1,158 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format, startOfWeek, addDays, isSameDay } from "date-fns";
+import { format, startOfWeek, addDays, parseISO } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { TimeGrid } from "@/components/agenda/TimeGrid";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-const timeSlots = Array.from({ length: 24 }, (_, i) => {
-  const hour = i.toString().padStart(2, '0');
-  return `${hour}:00`;
-});
+const generateTimeSlots = () => {
+  const slots = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (let minute of [0, 30]) {
+      slots.push(
+        `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`
+      );
+    }
+  }
+  return slots;
+};
 
 const Agenda = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<string[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartSlot, setDragStartSlot] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<string>("09:00");
   const [endTime, setEndTime] = useState<string>("17:00");
+  const { toast } = useToast();
 
+  const timeSlots = generateTimeSlots();
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+  useEffect(() => {
+    fetchAvailabilitySlots();
+  }, [selectedDate]);
+
+  const fetchAvailabilitySlots = async () => {
+    const { data, error } = await supabase
+      .from("availability_slots")
+      .select("*")
+      .gte("start_time", format(weekStart, "yyyy-MM-dd"))
+      .lt("end_time", format(addDays(weekStart, 7), "yyyy-MM-dd"));
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch availability slots",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (data) {
+      const slots = data.flatMap((slot) => {
+        const start = parseISO(slot.start_time);
+        const end = parseISO(slot.end_time);
+        const slotKeys = [];
+        let current = start;
+
+        while (current < end) {
+          slotKeys.push(
+            `${format(current, "yyyy-MM-dd")}-${format(current, "HH:mm")}`
+          );
+          current = addDays(current, 30 * 60 * 1000); // Add 30 minutes
+        }
+
+        return slotKeys;
+      });
+
+      setSelectedTimeSlots(slots);
+    }
+  };
+
+  const saveAvailabilitySlots = async () => {
+    // Group consecutive slots into ranges
+    const ranges = selectedTimeSlots.sort().reduce((acc: any[], slot) => {
+      const [date, time] = slot.split("-");
+      const current = new Date(`${date}T${time}`);
+
+      if (acc.length === 0) {
+        return [{ start: current, end: addDays(current, 30 * 60 * 1000) }];
+      }
+
+      const lastRange = acc[acc.length - 1];
+      if (current.getTime() === lastRange.end.getTime()) {
+        lastRange.end = addDays(current, 30 * 60 * 1000);
+        return acc;
+      }
+
+      return [...acc, { start: current, end: addDays(current, 30 * 60 * 1000) }];
+    }, []);
+
+    // Save ranges to database
+    const { error } = await supabase.from("availability_slots").insert(
+      ranges.map((range) => ({
+        start_time: range.start.toISOString(),
+        end_time: range.end.toISOString(),
+      }))
+    );
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save availability slots",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Success",
+      description: "Availability slots saved successfully",
+    });
+  };
+
+  const handleTimeSlotMouseDown = (day: Date, time: string) => {
+    const slotKey = `${format(day, "yyyy-MM-dd")}-${time}`;
+    setIsDragging(true);
+    setDragStartSlot(slotKey);
+    setSelectedTimeSlots((prev) =>
+      prev.includes(slotKey) ? prev.filter((s) => s !== slotKey) : [...prev, slotKey]
+    );
+  };
+
+  const handleTimeSlotMouseEnter = (day: Date, time: string) => {
+    if (!isDragging || !dragStartSlot) return;
+
+    const slotKey = `${format(day, "yyyy-MM-dd")}-${time}`;
+    const [startDate] = dragStartSlot.split("-");
+    const [currentDate] = slotKey.split("-");
+
+    if (startDate === currentDate) {
+      const slots = timeSlots
+        .slice(
+          timeSlots.indexOf(dragStartSlot.split("-")[1]),
+          timeSlots.indexOf(time) + 1
+        )
+        .map((t) => `${startDate}-${t}`);
+
+      setSelectedTimeSlots((prev) => {
+        const withoutCurrentDay = prev.filter(
+          (s) => !s.startsWith(startDate)
+        );
+        return [...withoutCurrentDay, ...slots];
+      });
+    }
+  };
+
+  const handleTimeSlotMouseUp = () => {
+    setIsDragging(false);
+    setDragStartSlot(null);
+  };
 
   const handlePreviousWeek = () => {
     setSelectedDate(addDays(weekStart, -7));
@@ -27,18 +160,6 @@ const Agenda = () => {
 
   const handleNextWeek = () => {
     setSelectedDate(addDays(weekStart, 7));
-  };
-
-  const handleTimeSlotClick = (day: Date, time: string) => {
-    const slotKey = `${format(day, 'yyyy-MM-dd')}-${time}`;
-    setSelectedTimeSlots((prev) =>
-      prev.includes(slotKey) ? prev.filter((slot) => slot !== slotKey) : [...prev, slotKey]
-    );
-  };
-
-  const isTimeSlotSelected = (day: Date, time: string) => {
-    const slotKey = `${format(day, 'yyyy-MM-dd')}-${time}`;
-    return selectedTimeSlots.includes(slotKey);
   };
 
   return (
@@ -51,7 +172,7 @@ const Agenda = () => {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <h2 className="text-lg font-semibold">
-                Week of {format(weekStart, 'MMMM d, yyyy')}
+                Week of {format(weekStart, "MMMM d, yyyy")}
               </h2>
               <Button variant="outline" size="icon" onClick={handleNextWeek}>
                 <ChevronRight className="h-4 w-4" />
@@ -83,6 +204,7 @@ const Agenda = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <Button onClick={saveAvailabilitySlots}>Save Slots</Button>
             </div>
           </div>
 
@@ -90,41 +212,25 @@ const Agenda = () => {
             <div className="col-span-1"></div>
             {weekDays.map((day) => (
               <div key={day.toString()} className="col-span-1 text-center">
-                <div className="font-semibold mb-2">
-                  {format(day, 'EEE')}
-                </div>
+                <div className="font-semibold mb-2">{format(day, "EEE")}</div>
                 <div className="text-sm text-muted-foreground">
-                  {format(day, 'MMM d')}
+                  {format(day, "MMM d")}
                 </div>
               </div>
             ))}
 
-            {timeSlots
-              .filter(
-                (time) =>
-                  time >= startTime &&
-                  time <= endTime
-              )
-              .map((time) => (
-                <React.Fragment key={time}>
-                  <div className="col-span-1 py-2 text-right pr-4 text-sm text-muted-foreground">
-                    {time}
-                  </div>
-                  {weekDays.map((day) => (
-                    <div
-                      key={`${day}-${time}`}
-                      className={`col-span-1 border rounded-md cursor-pointer transition-colors ${
-                        isTimeSlotSelected(day, time)
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-accent"
-                      }`}
-                      onClick={() => handleTimeSlotClick(day, time)}
-                    >
-                      &nbsp;
-                    </div>
-                  ))}
-                </React.Fragment>
-              ))}
+            <TimeGrid
+              weekDays={weekDays}
+              timeSlots={timeSlots.filter(
+                (time) => time >= startTime && time <= endTime
+              )}
+              selectedTimeSlots={selectedTimeSlots}
+              isDragging={isDragging}
+              dragStartSlot={dragStartSlot}
+              onTimeSlotMouseDown={handleTimeSlotMouseDown}
+              onTimeSlotMouseEnter={handleTimeSlotMouseEnter}
+              onTimeSlotMouseUp={handleTimeSlotMouseUp}
+            />
           </div>
         </CardContent>
       </Card>
