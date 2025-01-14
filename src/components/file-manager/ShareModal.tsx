@@ -29,6 +29,16 @@ export const ShareModal = ({ fileId, isOpen, onClose }: ShareModalProps) => {
       return;
     }
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to share files",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsCreating(true);
     try {
       const { data, error } = await supabase
@@ -37,6 +47,7 @@ export const ShareModal = ({ fileId, isOpen, onClose }: ShareModalProps) => {
           file_id: fileId,
           access_password: password,
           expires_at: expiresAt || null,
+          created_by: user.id,
         })
         .select()
         .single();
