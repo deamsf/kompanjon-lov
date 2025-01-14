@@ -87,13 +87,32 @@ const Agenda = () => {
       return;
     }
 
+    // First, delete existing slots for the current week
+    const { error: deleteError } = await supabase
+      .from("availability_slots")
+      .delete()
+      .gte("start_time", format(weekStart, "yyyy-MM-dd"))
+      .lt("end_time", format(addDays(weekStart, 7), "yyyy-MM-dd"));
+
+    if (deleteError) {
+      toast({
+        title: "Error",
+        description: "Failed to update availability slots",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Group consecutive slots into ranges
     const ranges = selectedTimeSlots.sort().reduce((acc: any[], slot) => {
       const [date, time] = slot.split("-");
       const current = new Date(`${date}T${time}`);
 
       if (acc.length === 0) {
-        return [{ start: current, end: new Date(current.getTime() + 30 * 60 * 1000) }];
+        return [{
+          start: current,
+          end: new Date(current.getTime() + 30 * 60 * 1000)
+        }];
       }
 
       const lastRange = acc[acc.length - 1];
@@ -102,7 +121,10 @@ const Agenda = () => {
         return acc;
       }
 
-      return [...acc, { start: current, end: new Date(current.getTime() + 30 * 60 * 1000) }];
+      return [...acc, {
+        start: current,
+        end: new Date(current.getTime() + 30 * 60 * 1000)
+      }];
     }, []);
 
     // Save ranges to database
