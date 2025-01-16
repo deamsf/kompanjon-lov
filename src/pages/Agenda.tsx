@@ -1,46 +1,29 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { format, addDays, isSameDay, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format, startOfWeek, addDays, parseISO } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { TimeGrid } from "@/components/agenda/TimeGrid";
-import { supabase } from "@/integrations/supabase/client";
+import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-
-const generateTimeSlots = () => {
-  const slots = [];
-  for (let hour = 0; hour < 24; hour++) {
-    for (let minute of [0, 30]) {
-      slots.push(
-        `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`
-      );
-    }
-  }
-  return slots;
-};
+import { supabase } from "@/integrations/supabase/client";
 
 const Agenda = () => {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [weekStart, setWeekStart] = useState(new Date());
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStartSlot, setDragStartSlot] = useState<string | null>(null);
-  const [startTime, setStartTime] = useState<string>("09:00");
-  const [endTime, setEndTime] = useState<string>("17:00");
+  const [savedSlots, setSavedSlots] = useState<any[]>([]);
   const { toast } = useToast();
 
-  const timeSlots = generateTimeSlots();
-  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-
   useEffect(() => {
-    fetchAvailabilitySlots();
-  }, [selectedDate]);
+    fetchSavedSlots();
+  }, [weekStart]);
 
-  const fetchAvailabilitySlots = async () => {
+  const fetchSavedSlots = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
     const { data, error } = await supabase
       .from("availability_slots")
       .select("*")
+      .eq("user_id", session.user.id)
       .gte("start_time", format(weekStart, "yyyy-MM-dd"))
       .lt("end_time", format(addDays(weekStart, 7), "yyyy-MM-dd"));
 
@@ -53,32 +36,41 @@ const Agenda = () => {
       return;
     }
 
-    if (data) {
-      const slots = data.flatMap((slot) => {
-        const start = parseISO(slot.start_time);
-        const end = parseISO(slot.end_time);
-        const slotKeys = [];
-        let current = start;
+    setSavedSlots(data || []);
+  };
 
-        while (current < end) {
-          slotKeys.push(
-            `${format(current, "yyyy-MM-dd")}-${format(current, "HH:mm")}`
-          );
-          current = new Date(current.getTime() + 30 * 60 * 1000); // Add 30 minutes
+  const handleTimeSlotClick = (dateTime: string) => {
+    setSelectedTimeSlots(prev => {
+      if (prev.includes(dateTime)) {
+        return prev.filter(slot => slot !== dateTime);
+      }
+      return [...prev, dateTime];
+    });
+  };
+
+  const handleMouseDown = (dateTime: string) => {
+    setIsDragging(true);
+    setSelectedTimeSlots([dateTime]);
+  };
+
+  const handleMouseEnter = (dateTime: string) => {
+    if (isDragging) {
+      setSelectedTimeSlots(prev => {
+        if (!prev.includes(dateTime)) {
+          return [...prev, dateTime];
         }
-
-        return slotKeys;
+        return prev;
       });
-
-      setSelectedTimeSlots(slots);
     }
   };
 
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
   const saveAvailabilitySlots = async () => {
-    const session = await supabase.auth.getSession();
-    const userId = session.data.session?.user.id;
-    
-    if (!userId) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
       toast({
         title: "Error",
         description: "You must be logged in to save availability slots",
@@ -91,6 +83,7 @@ const Agenda = () => {
     const { error: deleteError } = await supabase
       .from("availability_slots")
       .delete()
+      .eq("user_id", session.user.id)
       .gte("start_time", format(weekStart, "yyyy-MM-dd"))
       .lt("end_time", format(addDays(weekStart, 7), "yyyy-MM-dd"));
 
@@ -106,35 +99,35 @@ const Agenda = () => {
     // Group consecutive slots into ranges
     const ranges = selectedTimeSlots.sort().reduce((acc: any[], slot) => {
       const [date, time] = slot.split("-");
-      const current = new Date(`${date}T${time}`);
+      const current = parseISO(`${date}T${time}`);
 
       if (acc.length === 0) {
         return [{
-          start: current,
-          end: new Date(current.getTime() + 30 * 60 * 1000)
+          start_time: current.toISOString(),
+          end_time: new Date(current.getTime() + 30 * 60 * 1000).toISOString(),
+          user_id: session.user.id
         }];
       }
 
       const lastRange = acc[acc.length - 1];
-      if (current.getTime() === lastRange.end.getTime()) {
-        lastRange.end = new Date(current.getTime() + 30 * 60 * 1000);
+      const lastEnd = parseISO(lastRange.end_time);
+
+      if (current.getTime() - lastEnd.getTime() === 0) {
+        lastRange.end_time = new Date(current.getTime() + 30 * 60 * 1000).toISOString();
         return acc;
       }
 
       return [...acc, {
-        start: current,
-        end: new Date(current.getTime() + 30 * 60 * 1000)
+        start_time: current.toISOString(),
+        end_time: new Date(current.getTime() + 30 * 60 * 1000).toISOString(),
+        user_id: session.user.id
       }];
     }, []);
 
     // Save ranges to database
-    const { error } = await supabase.from("availability_slots").insert(
-      ranges.map((range) => ({
-        start_time: range.start.toISOString(),
-        end_time: range.end.toISOString(),
-        user_id: userId
-      }))
-    );
+    const { error } = await supabase
+      .from("availability_slots")
+      .insert(ranges);
 
     if (error) {
       toast({
@@ -149,125 +142,100 @@ const Agenda = () => {
       title: "Success",
       description: "Availability slots saved successfully",
     });
+
+    fetchSavedSlots();
   };
 
-  const handleTimeSlotMouseDown = (day: Date, time: string) => {
-    const slotKey = `${format(day, "yyyy-MM-dd")}-${time}`;
-    setIsDragging(true);
-    setDragStartSlot(slotKey);
-    setSelectedTimeSlots((prev) =>
-      prev.includes(slotKey) ? prev.filter((s) => s !== slotKey) : [...prev, slotKey]
-    );
-  };
-
-  const handleTimeSlotMouseEnter = (day: Date, time: string) => {
-    if (!isDragging || !dragStartSlot) return;
-
-    const slotKey = `${format(day, "yyyy-MM-dd")}-${time}`;
-    const [startDate] = dragStartSlot.split("-");
-    const [currentDate] = slotKey.split("-");
-
-    if (startDate === currentDate) {
-      const slots = timeSlots
-        .slice(
-          timeSlots.indexOf(dragStartSlot.split("-")[1]),
-          timeSlots.indexOf(time) + 1
-        )
-        .map((t) => `${startDate}-${t}`);
-
-      setSelectedTimeSlots((prev) => {
-        const withoutCurrentDay = prev.filter(
-          (s) => !s.startsWith(startDate)
-        );
-        return [...withoutCurrentDay, ...slots];
-      });
+  const generateTimeSlots = () => {
+    const slots = [];
+    for (let hour = 9; hour < 18; hour++) {
+      for (let minute of [0, 30]) {
+        slots.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
+      }
     }
+    return slots;
   };
 
-  const handleTimeSlotMouseUp = () => {
-    setIsDragging(false);
-    setDragStartSlot(null);
+  const generateWeekDays = () => {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      days.push(addDays(weekStart, i));
+    }
+    return days;
   };
 
-  const handlePreviousWeek = () => {
-    setSelectedDate(addDays(weekStart, -7));
+  const isSlotSelected = (date: Date, time: string) => {
+    const dateString = format(date, "yyyy-MM-dd");
+    return selectedTimeSlots.includes(`${dateString}-${time}`);
   };
 
-  const handleNextWeek = () => {
-    setSelectedDate(addDays(weekStart, 7));
+  const isSlotSaved = (date: Date, time: string) => {
+    return savedSlots.some(slot => {
+      const slotStart = new Date(slot.start_time);
+      return (
+        isSameDay(date, slotStart) &&
+        format(slotStart, "HH:mm") === time
+      );
+    });
   };
 
   return (
     <div className="container mx-auto p-6">
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-4">
-              <Button variant="outline" size="icon" onClick={handlePreviousWeek}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <h2 className="text-lg font-semibold">
-                Week of {format(weekStart, "MMMM d, yyyy")}
-              </h2>
-              <Button variant="outline" size="icon" onClick={handleNextWeek}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex items-center gap-4">
-              <Select value={startTime} onValueChange={setStartTime}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Start time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timeSlots.map((time) => (
-                    <SelectItem key={time} value={time}>
-                      {time}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <span>to</span>
-              <Select value={endTime} onValueChange={setEndTime}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="End time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timeSlots.map((time) => (
-                    <SelectItem key={time} value={time}>
-                      {time}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button onClick={saveAvailabilitySlots}>Save Slots</Button>
-            </div>
-          </div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Agenda</h1>
+        <div className="flex gap-4">
+          <Button
+            onClick={() => setWeekStart(addDays(weekStart, -7))}
+            variant="outline"
+          >
+            Previous Week
+          </Button>
+          <Button
+            onClick={() => setWeekStart(addDays(weekStart, 7))}
+            variant="outline"
+          >
+            Next Week
+          </Button>
+          <Button onClick={saveAvailabilitySlots}>Save Availability</Button>
+        </div>
+      </div>
 
-          <div className="grid grid-cols-8 gap-4">
-            <div className="col-span-1"></div>
-            {weekDays.map((day) => (
-              <div key={day.toString()} className="col-span-1 text-center">
-                <div className="font-semibold mb-2">{format(day, "EEE")}</div>
-                <div className="text-sm text-muted-foreground">
-                  {format(day, "MMM d")}
-                </div>
+      <Card className="p-4">
+        <div className="grid grid-cols-8 gap-1">
+          <div className="col-span-1"></div>
+          {generateWeekDays().map((date, index) => (
+            <div key={index} className="text-center font-semibold">
+              {format(date, "EEE dd/MM")}
+            </div>
+          ))}
+
+          {generateTimeSlots().map((time) => (
+            <>
+              <div key={`time-${time}`} className="text-right pr-2">
+                {time}
               </div>
-            ))}
-
-            <TimeGrid
-              weekDays={weekDays}
-              timeSlots={timeSlots.filter(
-                (time) => time >= startTime && time <= endTime
-              )}
-              selectedTimeSlots={selectedTimeSlots}
-              isDragging={isDragging}
-              dragStartSlot={dragStartSlot}
-              onTimeSlotMouseDown={handleTimeSlotMouseDown}
-              onTimeSlotMouseEnter={handleTimeSlotMouseEnter}
-              onTimeSlotMouseUp={handleTimeSlotMouseUp}
-            />
-          </div>
-        </CardContent>
+              {generateWeekDays().map((date, dateIndex) => {
+                const dateTime = `${format(date, "yyyy-MM-dd")}-${time}`;
+                return (
+                  <div
+                    key={`slot-${dateIndex}-${time}`}
+                    className={`border p-2 cursor-pointer transition-colors ${
+                      isSlotSelected(date, time)
+                        ? "bg-primary text-primary-foreground"
+                        : isSlotSaved(date, time)
+                        ? "bg-secondary"
+                        : "hover:bg-muted"
+                    }`}
+                    onMouseDown={() => handleMouseDown(dateTime)}
+                    onMouseEnter={() => handleMouseEnter(dateTime)}
+                    onMouseUp={handleMouseUp}
+                    onClick={() => handleTimeSlotClick(dateTime)}
+                  ></div>
+                );
+              })}
+            </>
+          ))}
+        </div>
       </Card>
     </div>
   );
