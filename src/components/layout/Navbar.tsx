@@ -39,7 +39,7 @@ const Navbar = () => {
       <div className="flex h-16 items-center px-4 container mx-auto">
         <Link to="/" className="flex items-center gap-2 mr-8">
           <Shield className="h-6 w-6" />
-          <span className="font-bold text-xl">ShareVault</span>
+          <span className="font-bold text-xl">Kompanjon</span>
         </Link>
 
         <NavigationMenu className="mx-6 flex-1">
