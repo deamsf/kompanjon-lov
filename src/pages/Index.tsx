@@ -137,7 +137,7 @@ const Index = () => {
               {isLoading ? "Loading..." : "Login"}
             </Button>
             <p className="text-sm text-center text-muted-foreground mt-2">
-              Enter your email and password to sign in or create an account
+              Enter your email and password to sign in or create an account // jo, an of ed@gmail.com met pw azerazer
             </p>
           </form>
         </CardContent>
