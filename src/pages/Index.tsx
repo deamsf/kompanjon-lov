@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [email, setEmail] = useState("");
@@ -14,44 +14,55 @@ const Index = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      // For demo purposes, create a new user if they don't exist
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (signUpError) {
+        // If signup fails, try to sign in
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      navigate("/files");
+        if (signInError) {
+          throw signInError;
+        }
+      }
+
       toast({
         title: "Success",
-        description: "Successfully logged in",
+        description: "Logged in successfully",
       });
+      navigate("/files");
     } catch (error) {
       console.error("Error logging in:", error);
-      // For demo purposes, allow any credentials
-      navigate("/files");
+      toast({
+        title: "Error",
+        description: "Failed to log in. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   return (
-    <div className="container mx-auto flex items-center justify-center min-h-screen">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl text-center">Welcome to Kompanjon</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
+          <h1 className="text-2xl font-bold text-center mb-6">Welcome</h1>
           <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
+            <div>
               <Input
-                type="email"
+                type="text"
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
+            <div>
               <Input
                 type="password"
                 placeholder="Password"
@@ -60,11 +71,8 @@ const Index = () => {
               />
             </div>
             <Button type="submit" className="w-full">
-              Sign In
+              Login
             </Button>
-            <p className="text-sm text-center text-muted-foreground">
-              Demo mode: Enter any credentials
-            </p>
           </form>
         </CardContent>
       </Card>
