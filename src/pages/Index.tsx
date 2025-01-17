@@ -17,7 +17,6 @@ const Index = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic validation
     if (!email || !password) {
       toast({
         title: "Error",
@@ -30,23 +29,34 @@ const Index = () => {
     setIsLoading(true);
 
     try {
-      // First try to sign in
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+      // First check if user exists
+      const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers();
+      const userExists = users?.some(user => user.email === email.trim());
 
-      if (signInData.session) {
-        toast({
-          title: "Success",
-          description: "Logged in successfully",
-        });
-        navigate("/files");
-        return;
+      if (getUserError) {
+        throw getUserError;
       }
 
-      // If sign in fails, try to sign up
-      if (signInError) {
+      if (userExists) {
+        // User exists, try to sign in
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+
+        if (signInError) {
+          throw signInError;
+        }
+
+        if (signInData.session) {
+          toast({
+            title: "Success",
+            description: "Logged in successfully",
+          });
+          navigate("/files");
+        }
+      } else {
+        // User doesn't exist, create new account
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: email.trim(),
           password,
@@ -56,24 +66,13 @@ const Index = () => {
         });
 
         if (signUpError) {
-          if (signUpError instanceof AuthApiError) {
-            throw signUpError;
-          }
           throw signUpError;
         }
 
-        if (signUpData.session) {
-          toast({
-            title: "Success",
-            description: "Account created and logged in successfully",
-          });
-          navigate("/files");
-        } else {
-          toast({
-            title: "Success",
-            description: "Please check your email for verification link",
-          });
-        }
+        toast({
+          title: "Success",
+          description: "Please check your email for verification link",
+        });
       }
     } catch (error) {
       const authError = error as AuthError;
@@ -89,8 +88,8 @@ const Index = () => {
           case "Email not confirmed":
             errorMessage = "Please verify your email address";
             break;
-          case "Anonymous sign-ups are disabled":
-            errorMessage = "Please provide a valid email and password";
+          case "Invalid email or password":
+            errorMessage = "The email or password you entered is incorrect";
             break;
           default:
             errorMessage = authError.message;
