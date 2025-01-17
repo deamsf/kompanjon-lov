@@ -11,7 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface TodoItem {
   id: string;
@@ -26,6 +31,9 @@ interface TodoItem {
 const Todo = () => {
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [draggedItem, setDraggedItem] = useState<TodoItem | null>(null);
+  const [editingTodo, setEditingTodo] = useState<TodoItem | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
   const columns = [
     { id: "not-yet", title: "Not Yet" },
@@ -50,68 +58,143 @@ const Todo = () => {
       );
       setTodos(updatedTodos);
       setDraggedItem(null);
+      toast.success("Task status updated successfully");
     }
   };
 
-  const handleAddTodo = (data: Omit<TodoItem, "id" | "status">) => {
-    const newTodo: TodoItem = {
-      id: Math.random().toString(36).substr(2, 9),
-      status: "not-yet",
-      ...data,
+  const handleDeleteTodo = (id: string) => {
+    setTodos(todos.filter((todo) => todo.id !== id));
+    toast.success("Task deleted successfully");
+  };
+
+  const handleEditTodo = (todo: TodoItem) => {
+    setEditingTodo(todo);
+    setSelectedDate(new Date(todo.deadline));
+    setIsDialogOpen(true);
+  };
+
+  const handleSaveTodo = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const todoData = {
+      title: formData.get("title") as string,
+      description: formData.get("description") as string,
+      author: formData.get("author") as string,
+      assignee: formData.get("assignee") as string,
+      deadline: selectedDate ? format(selectedDate, "yyyy-MM-dd") : "",
     };
-    setTodos([...todos, newTodo]);
+
+    if (editingTodo) {
+      const updatedTodos = todos.map((todo) =>
+        todo.id === editingTodo.id
+          ? { ...todo, ...todoData }
+          : todo
+      );
+      setTodos(updatedTodos);
+      toast.success("Task updated successfully");
+    } else {
+      const newTodo: TodoItem = {
+        id: Math.random().toString(36).substr(2, 9),
+        status: "not-yet",
+        ...todoData,
+      };
+      setTodos([...todos, newTodo]);
+      toast.success("Task created successfully");
+    }
+    
+    setIsDialogOpen(false);
+    setEditingTodo(null);
+    setSelectedDate(undefined);
   };
 
   return (
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">To Do Board</h1>
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={() => {
+              setEditingTodo(null);
+              setSelectedDate(undefined);
+            }}>
               <Plus className="w-4 h-4 mr-2" />
               Add Task
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Task</DialogTitle>
+              <DialogTitle>
+                {editingTodo ? "Edit Task" : "Add New Task"}
+              </DialogTitle>
             </DialogHeader>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                handleAddTodo({
-                  title: formData.get("title") as string,
-                  description: formData.get("description") as string,
-                  author: formData.get("author") as string,
-                  assignee: formData.get("assignee") as string,
-                  deadline: formData.get("deadline") as string,
-                });
-              }}
-              className="space-y-4"
-            >
+            <form onSubmit={handleSaveTodo} className="space-y-4">
               <div>
                 <Label htmlFor="title">Title</Label>
-                <Input id="title" name="title" required />
+                <Input
+                  id="title"
+                  name="title"
+                  defaultValue={editingTodo?.title}
+                  required
+                />
               </div>
               <div>
                 <Label htmlFor="description">Description</Label>
-                <Textarea id="description" name="description" required />
+                <Textarea
+                  id="description"
+                  name="description"
+                  defaultValue={editingTodo?.description}
+                  required
+                />
               </div>
               <div>
                 <Label htmlFor="author">Author</Label>
-                <Input id="author" name="author" required />
+                <Input
+                  id="author"
+                  name="author"
+                  defaultValue={editingTodo?.author}
+                  required
+                />
               </div>
               <div>
                 <Label htmlFor="assignee">Assignee</Label>
-                <Input id="assignee" name="assignee" required />
+                <Input
+                  id="assignee"
+                  name="assignee"
+                  defaultValue={editingTodo?.assignee}
+                  required
+                />
               </div>
               <div>
-                <Label htmlFor="deadline">Deadline</Label>
-                <Input id="deadline" name="deadline" type="date" required />
+                <Label>Deadline</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !selectedDate && "text-muted-foreground"
+                      )}
+                    >
+                      {selectedDate ? (
+                        format(selectedDate, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
-              <Button type="submit">Create Task</Button>
+              <Button type="submit">
+                {editingTodo ? "Update Task" : "Create Task"}
+              </Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -137,7 +220,25 @@ const Todo = () => {
                     className="cursor-move"
                   >
                     <CardContent className="p-4 space-y-2">
-                      <h4 className="font-semibold">{todo.title}</h4>
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-semibold">{todo.title}</h4>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditTodo(todo)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteTodo(todo.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {todo.description}
                       </p>
