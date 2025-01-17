@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Filter } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -51,11 +51,11 @@ const projectComponents = [
 const Partners = () => {
   const [partners, setPartners] = useState<Partner[]>([]);
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
-  const [selectedComponent, setSelectedComponent] = useState<string>("");
+  const [selectedComponent, setSelectedComponent] = useState<string>("all");
 
-  const filteredPartners = selectedComponent
-    ? partners.filter((partner) => partner.components.includes(selectedComponent))
-    : partners;
+  const filteredPartners = selectedComponent === "all"
+    ? partners
+    : partners.filter((partner) => partner.components.includes(selectedComponent));
 
   const handleSavePartner = (data: Omit<Partner, "id">) => {
     if (editingPartner) {
@@ -88,7 +88,7 @@ const Partners = () => {
               <SelectValue placeholder="Filter by component" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Components</SelectItem>
+              <SelectItem value="all">All Components</SelectItem>
               {projectComponents.map((component) => (
                 <SelectItem key={component} value={component}>
                   {component}
