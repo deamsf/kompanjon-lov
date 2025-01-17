@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { TimeGrid } from "@/components/agenda/TimeGrid";
 
 const Agenda = () => {
   const [weekStart, setWeekStart] = useState(new Date());
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [dragStartSlot, setDragStartSlot] = useState<string | null>(null);
   const [savedSlots, setSavedSlots] = useState<any[]>([]);
   const { toast } = useToast();
 
@@ -17,133 +19,33 @@ const Agenda = () => {
   }, [weekStart]);
 
   const fetchSavedSlots = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
-    const { data, error } = await supabase
-      .from("availability_slots")
-      .select("*")
-      .eq("user_id", session.user.id)
-      .gte("start_time", format(weekStart, "yyyy-MM-dd"))
-      .lt("end_time", format(addDays(weekStart, 7), "yyyy-MM-dd"));
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch availability slots",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSavedSlots(data || []);
-  };
-
-  const handleTimeSlotClick = (dateTime: string) => {
-    setSelectedTimeSlots(prev => {
-      if (prev.includes(dateTime)) {
-        return prev.filter(slot => slot !== dateTime);
-      }
-      return [...prev, dateTime];
-    });
-  };
-
-  const handleMouseDown = (dateTime: string) => {
-    setIsDragging(true);
-    setSelectedTimeSlots([dateTime]);
-  };
-
-  const handleMouseEnter = (dateTime: string) => {
-    if (isDragging) {
-      setSelectedTimeSlots(prev => {
-        if (!prev.includes(dateTime)) {
-          return [...prev, dateTime];
-        }
-        return prev;
-      });
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const saveAvailabilitySlots = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to save availability slots",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // First, delete existing slots for the current week
-    const { error: deleteError } = await supabase
-      .from("availability_slots")
-      .delete()
-      .eq("user_id", session.user.id)
-      .gte("start_time", format(weekStart, "yyyy-MM-dd"))
-      .lt("end_time", format(addDays(weekStart, 7), "yyyy-MM-dd"));
-
-    if (deleteError) {
-      toast({
-        title: "Error",
-        description: "Failed to update availability slots",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Group consecutive slots into ranges
-    const ranges = selectedTimeSlots.sort().reduce((acc: any[], slot) => {
-      const [date, time] = slot.split("-");
-      const current = parseISO(`${date}T${time}`);
-
-      if (acc.length === 0) {
-        return [{
-          start_time: current.toISOString(),
-          end_time: new Date(current.getTime() + 30 * 60 * 1000).toISOString(),
-          user_id: session.user.id
-        }];
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to view availability slots",
+          variant: "destructive",
+        });
+        return;
       }
 
-      const lastRange = acc[acc.length - 1];
-      const lastEnd = parseISO(lastRange.end_time);
+      const { data, error } = await supabase
+        .from("availability_slots")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .gte("start_time", format(weekStart, "yyyy-MM-dd"))
+        .lt("end_time", format(addDays(weekStart, 7), "yyyy-MM-dd"));
 
-      if (current.getTime() - lastEnd.getTime() === 0) {
-        lastRange.end_time = new Date(current.getTime() + 30 * 60 * 1000).toISOString();
-        return acc;
-      }
-
-      return [...acc, {
-        start_time: current.toISOString(),
-        end_time: new Date(current.getTime() + 30 * 60 * 1000).toISOString(),
-        user_id: session.user.id
-      }];
-    }, []);
-
-    // Save ranges to database
-    const { error } = await supabase
-      .from("availability_slots")
-      .insert(ranges);
-
-    if (error) {
+      if (error) throw error;
+      setSavedSlots(data || []);
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to save availability slots",
+        description: error.message || "Failed to fetch availability slots",
         variant: "destructive",
       });
-      return;
     }
-
-    toast({
-      title: "Success",
-      description: "Availability slots saved successfully",
-    });
-
-    fetchSavedSlots();
   };
 
   const generateTimeSlots = () => {
@@ -164,19 +66,104 @@ const Agenda = () => {
     return days;
   };
 
-  const isSlotSelected = (date: Date, time: string) => {
-    const dateString = format(date, "yyyy-MM-dd");
-    return selectedTimeSlots.includes(`${dateString}-${time}`);
+  const handleTimeSlotMouseDown = (day: Date, time: string) => {
+    const slotKey = `${format(day, "yyyy-MM-dd")}-${time}`;
+    setIsDragging(true);
+    setDragStartSlot(slotKey);
+    setSelectedTimeSlots([slotKey]);
   };
 
-  const isSlotSaved = (date: Date, time: string) => {
-    return savedSlots.some(slot => {
-      const slotStart = new Date(slot.start_time);
-      return (
-        isSameDay(date, slotStart) &&
-        format(slotStart, "HH:mm") === time
-      );
-    });
+  const handleTimeSlotMouseEnter = (day: Date, time: string) => {
+    if (isDragging && dragStartSlot) {
+      const slotKey = `${format(day, "yyyy-MM-dd")}-${time}`;
+      setSelectedTimeSlots(prev => {
+        if (!prev.includes(slotKey)) {
+          return [...prev, slotKey];
+        }
+        return prev;
+      });
+    }
+  };
+
+  const handleTimeSlotMouseUp = () => {
+    setIsDragging(false);
+    setDragStartSlot(null);
+  };
+
+  const saveAvailabilitySlots = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to save availability slots",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Delete existing slots for the current week
+      const { error: deleteError } = await supabase
+        .from("availability_slots")
+        .delete()
+        .eq("user_id", session.user.id)
+        .gte("start_time", format(weekStart, "yyyy-MM-dd"))
+        .lt("end_time", format(addDays(weekStart, 7), "yyyy-MM-dd"));
+
+      if (deleteError) throw deleteError;
+
+      if (selectedTimeSlots.length === 0) {
+        await fetchSavedSlots();
+        return;
+      }
+
+      // Group consecutive slots into ranges
+      const ranges = selectedTimeSlots.sort().reduce((acc: any[], slot) => {
+        const [date, time] = slot.split("-");
+        const current = parseISO(`${date}T${time}`);
+
+        if (acc.length === 0) {
+          return [{
+            start_time: current.toISOString(),
+            end_time: new Date(current.getTime() + 30 * 60 * 1000).toISOString(),
+            user_id: session.user.id
+          }];
+        }
+
+        const lastRange = acc[acc.length - 1];
+        const lastEnd = new Date(lastRange.end_time);
+
+        if (current.getTime() - lastEnd.getTime() === 0) {
+          lastRange.end_time = new Date(current.getTime() + 30 * 60 * 1000).toISOString();
+          return acc;
+        }
+
+        return [...acc, {
+          start_time: current.toISOString(),
+          end_time: new Date(current.getTime() + 30 * 60 * 1000).toISOString(),
+          user_id: session.user.id
+        }];
+      }, []);
+
+      const { error } = await supabase
+        .from("availability_slots")
+        .insert(ranges);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Availability slots saved successfully",
+      });
+
+      await fetchSavedSlots();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save availability slots",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -209,32 +196,16 @@ const Agenda = () => {
             </div>
           ))}
 
-          {generateTimeSlots().map((time) => (
-            <>
-              <div key={`time-${time}`} className="text-right pr-2">
-                {time}
-              </div>
-              {generateWeekDays().map((date, dateIndex) => {
-                const dateTime = `${format(date, "yyyy-MM-dd")}-${time}`;
-                return (
-                  <div
-                    key={`slot-${dateIndex}-${time}`}
-                    className={`border p-2 cursor-pointer transition-colors ${
-                      isSlotSelected(date, time)
-                        ? "bg-primary text-primary-foreground"
-                        : isSlotSaved(date, time)
-                        ? "bg-secondary"
-                        : "hover:bg-muted"
-                    }`}
-                    onMouseDown={() => handleMouseDown(dateTime)}
-                    onMouseEnter={() => handleMouseEnter(dateTime)}
-                    onMouseUp={handleMouseUp}
-                    onClick={() => handleTimeSlotClick(dateTime)}
-                  ></div>
-                );
-              })}
-            </>
-          ))}
+          <TimeGrid
+            weekDays={generateWeekDays()}
+            timeSlots={generateTimeSlots()}
+            selectedTimeSlots={selectedTimeSlots}
+            isDragging={isDragging}
+            dragStartSlot={dragStartSlot}
+            onTimeSlotMouseDown={handleTimeSlotMouseDown}
+            onTimeSlotMouseEnter={handleTimeSlotMouseEnter}
+            onTimeSlotMouseUp={handleTimeSlotMouseUp}
+          />
         </div>
       </Card>
     </div>
