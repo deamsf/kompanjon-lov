@@ -14,32 +14,19 @@ const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const validateEmail = (email: string) => {
-    return email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      if (!validateEmail(email)) {
-        toast({
-          title: "Invalid Email",
-          description: "Please enter a valid email address",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // First try to sign in
+      // For demo purposes, try to sign in first
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      // If sign in fails, create a new user
       if (signInError) {
-        // If sign in fails, try to sign up
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -59,14 +46,9 @@ const Index = () => {
       const authError = error as AuthError;
       console.error("Error:", authError);
       
-      let errorMessage = "Failed to log in. Please try again.";
-      if (authError.message) {
-        errorMessage = authError.message;
-      }
-      
       toast({
         title: "Error",
-        description: errorMessage,
+        description: "For demo purposes, use any email format and password",
         variant: "destructive",
       });
     } finally {
@@ -82,7 +64,7 @@ const Index = () => {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <Input
-                type="email"
+                type="text"
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -102,7 +84,7 @@ const Index = () => {
               {isLoading ? "Loading..." : "Login"}
             </Button>
             <p className="text-sm text-center text-muted-foreground mt-2">
-              Demo: Use any valid email format (e.g., demo@example.com)
+              Demo: Use any email and password
             </p>
           </form>
         </CardContent>
