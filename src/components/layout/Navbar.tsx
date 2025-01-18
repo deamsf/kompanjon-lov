@@ -48,10 +48,7 @@ const Navbar = () => {
     enabled: !!userId
   });
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
-  };
+  const displayName = profile?.username || profile?.first_name || 'User';
 
   const navItems = [
     { path: "/files", label: "Files" },
@@ -111,18 +108,18 @@ const Navbar = () => {
               <Avatar>
                 <AvatarImage src="/placeholder.svg" />
                 <AvatarFallback>
-                  {profile?.first_name?.[0] || profile?.email?.[0]?.toUpperCase() || 'U'}
+                  {displayName[0]?.toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm font-medium">
-                Welcome, {profile?.first_name || 'User'}
+                Welcome, {displayName}
               </span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => navigate("/preferences")}>
                 Preferences
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleSignOut}>
+              <DropdownMenuItem onClick={() => supabase.auth.signOut().then(() => navigate("/"))}>
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>

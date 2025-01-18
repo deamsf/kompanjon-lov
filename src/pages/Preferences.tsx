@@ -18,7 +18,7 @@ const Preferences = () => {
     });
   }, []);
 
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading } = useQuery({
     queryKey: ['profile', userId],
     queryFn: async () => {
       if (!userId) return null;
@@ -39,9 +39,10 @@ const Preferences = () => {
       if (!userId) throw new Error("Not authenticated");
       
       const updates = {
-        first_name: String(formData.get('firstName') || ''),
-        last_name: String(formData.get('lastName') || ''),
-        email: String(formData.get('email') || ''),
+        username: formData.get('username')?.toString() || null,
+        first_name: formData.get('firstName')?.toString() || '',
+        last_name: formData.get('lastName')?.toString() || '',
+        email: formData.get('email')?.toString() || '',
         updated_at: new Date().toISOString(),
       };
 
@@ -56,7 +57,8 @@ const Preferences = () => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       toast.success("Profile updated successfully");
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Update error:', error);
       toast.error("Failed to update profile");
     },
   });
@@ -66,6 +68,10 @@ const Preferences = () => {
     const formData = new FormData(e.currentTarget);
     updateProfileMutation.mutate(formData);
   };
+
+  if (isLoading) {
+    return <div className="container mx-auto p-6">Loading...</div>;
+  }
 
   return (
     <div className="container mx-auto p-6">
@@ -77,6 +83,14 @@ const Preferences = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  name="username"
+                  defaultValue={profile?.username || ''}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
                 <Input
@@ -102,8 +116,11 @@ const Preferences = () => {
                   defaultValue={profile?.email || ''}
                 />
               </div>
-              <Button type="submit">
-                Save Changes
+              <Button 
+                type="submit"
+                disabled={updateProfileMutation.isPending}
+              >
+                {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </form>
           </CardContent>

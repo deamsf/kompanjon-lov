@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 interface FileUploadButtonProps {
@@ -16,7 +16,6 @@ export const FileUploadButton = ({
   tags = []
 }: FileUploadButtonProps) => {
   const [isUploading, setIsUploading] = useState(false);
-  const { toast } = useToast();
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -45,21 +44,14 @@ export const FileUploadButton = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "File uploaded successfully",
-      });
+      toast.success("File uploaded successfully");
 
       if (onUploadComplete) {
         onUploadComplete(data.file);
       }
     } catch (error) {
       console.error('Upload error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to upload file",
-        variant: "destructive",
-      });
+      toast.error("Failed to upload file");
     } finally {
       setIsUploading(false);
       // Reset the input
