@@ -17,11 +17,36 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/providers/theme-provider";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setUserId(user.id);
+    });
+  }, []);
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile', userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId
+  });
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -85,9 +110,13 @@ const Navbar = () => {
             <DropdownMenuTrigger className="flex items-center gap-2">
               <Avatar>
                 <AvatarImage src="/placeholder.svg" />
-                <AvatarFallback>U</AvatarFallback>
+                <AvatarFallback>
+                  {profile?.first_name?.[0] || profile?.email?.[0]?.toUpperCase() || 'U'}
+                </AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium">User</span>
+              <span className="text-sm font-medium">
+                Welcome, {profile?.first_name || 'User'}
+              </span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => navigate("/preferences")}>

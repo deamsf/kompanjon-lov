@@ -78,7 +78,10 @@ const Index = () => {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <Card className="w-full max-w-md">
         <CardContent className="pt-6">
-          <h1 className="text-2xl font-bold text-center mb-6">Welcome</h1>
+          <h1 className="text-2xl font-bold text-center mb-2">Welcome</h1>
+          <p className="text-center text-muted-foreground mb-6">
+            This is a demo version. All features are available without authentication.
+          </p>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <Input

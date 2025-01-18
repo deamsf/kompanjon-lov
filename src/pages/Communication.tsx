@@ -2,9 +2,8 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Bold, Italic, Underline, Link, List, ListOrdered } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -15,6 +14,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@/components/ui/toggle-group";
 
 interface EmailTemplate {
   id: string;
@@ -27,6 +30,8 @@ interface EmailTemplate {
 const Communication = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
+  const [selectedText, setSelectedText] = useState("");
+  const [textareaRef, setTextareaRef] = useState<HTMLTextAreaElement | null>(null);
   
   const queryClient = useQueryClient();
 
@@ -138,6 +143,55 @@ const Communication = () => {
     }
   };
 
+  const handleTextFormat = (format: string) => {
+    if (!textareaRef) return;
+
+    const start = textareaRef.selectionStart;
+    const end = textareaRef.selectionEnd;
+    const text = textareaRef.value;
+
+    let formattedText = "";
+    switch (format) {
+      case "bold":
+        formattedText = `<b>${selectedText}</b>`;
+        break;
+      case "italic":
+        formattedText = `<i>${selectedText}</i>`;
+        break;
+      case "underline":
+        formattedText = `<u>${selectedText}</u>`;
+        break;
+      case "link":
+        const url = prompt("Enter URL:");
+        if (url) {
+          formattedText = `<a href="${url}">${selectedText}</a>`;
+        }
+        break;
+      case "list":
+        formattedText = `<ul><li>${selectedText}</li></ul>`;
+        break;
+      case "ordered-list":
+        formattedText = `<ol><li>${selectedText}</li></ol>`;
+        break;
+    }
+
+    if (formattedText) {
+      const newText = text.substring(0, start) + formattedText + text.substring(end);
+      textareaRef.value = newText;
+      const event = new Event('input', { bubbles: true });
+      textareaRef.dispatchEvent(event);
+    }
+  };
+
+  const handleTextSelect = () => {
+    if (!textareaRef) return;
+    const selectedText = textareaRef.value.substring(
+      textareaRef.selectionStart,
+      textareaRef.selectionEnd
+    );
+    setSelectedText(selectedText);
+  };
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
@@ -176,12 +230,36 @@ const Communication = () => {
               </div>
               <div>
                 <Label htmlFor="body">Body</Label>
-                <Textarea
+                <div className="mb-2">
+                  <ToggleGroup type="multiple" className="justify-start">
+                    <ToggleGroupItem value="bold" onClick={() => handleTextFormat("bold")}>
+                      <Bold className="h-4 w-4" />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="italic" onClick={() => handleTextFormat("italic")}>
+                      <Italic className="h-4 w-4" />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="underline" onClick={() => handleTextFormat("underline")}>
+                      <Underline className="h-4 w-4" />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="link" onClick={() => handleTextFormat("link")}>
+                      <Link className="h-4 w-4" />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="list" onClick={() => handleTextFormat("list")}>
+                      <List className="h-4 w-4" />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="ordered-list" onClick={() => handleTextFormat("ordered-list")}>
+                      <ListOrdered className="h-4 w-4" />
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+                <textarea
                   id="body"
                   name="body"
+                  ref={(ref) => setTextareaRef(ref)}
                   defaultValue={editingTemplate?.body}
                   required
-                  className="h-32"
+                  className="w-full min-h-[200px] p-2 border rounded-md"
+                  onSelect={handleTextSelect}
                 />
               </div>
               <Button type="submit">
@@ -211,7 +289,10 @@ const Communication = () => {
                   <div>
                     <h3 className="font-semibold">{template.name}</h3>
                     <p className="text-sm font-medium">Subject: {template.subject}</p>
-                    <p className="text-sm text-muted-foreground mt-2">{template.body}</p>
+                    <div 
+                      className="text-sm text-muted-foreground mt-2"
+                      dangerouslySetInnerHTML={{ __html: template.body }}
+                    />
                   </div>
                   <div className="flex gap-2">
                     <Button
