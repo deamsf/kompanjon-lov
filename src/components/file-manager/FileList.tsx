@@ -34,6 +34,67 @@ export const FileList = ({
   onShare,
   onSort,
 }: FileListProps) => {
+  const renderTableContent = () => {
+    if (isLoading) {
+      return (
+        <TableRow>
+          <TableCell colSpan={6} className="text-center py-8">
+            <div className="flex flex-col items-center gap-2">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="text-muted-foreground">Loading files...</p>
+            </div>
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    if (files.length === 0) {
+      return (
+        <TableRow>
+          <TableCell colSpan={6} className="text-center py-8">
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-muted-foreground">No files uploaded yet</p>
+            </div>
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    return files.map((file) => (
+      <TableRow key={file.id}>
+        <TableCell>
+          <Checkbox
+            checked={selectedFiles.includes(file.id)}
+            onCheckedChange={() => onFileSelect(file.id)}
+          />
+        </TableCell>
+        <TableCell>{file.name}</TableCell>
+        <TableCell>
+          <div className="flex flex-wrap gap-1">
+            {file.tags.map((tag) => (
+              <Badge key={tag} variant="secondary">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        </TableCell>
+        <TableCell>{file.content_type}</TableCell>
+        <TableCell>{formatFileSize(file.size)}</TableCell>
+        <TableCell>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onShare(file.id)}
+            >
+              <Share className="w-4 h-4" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    ));
+  };
+
   return (
     <Table>
       <TableHeader>
@@ -64,58 +125,7 @@ export const FileList = ({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {isLoading ? (
-          <TableRow>
-            <TableCell colSpan={6} className="text-center py-8">
-              <div className="flex flex-col items-center gap-2">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <p className="text-muted-foreground">Loading files...</p>
-              </div>
-            </TableCell>
-          </TableRow>
-        ) : files.length === 0 ? (
-          <TableRow>
-            <TableCell colSpan={6} className="text-center py-8">
-              <div className="flex flex-col items-center gap-2">
-                <p className="text-muted-foreground">No files uploaded yet</p>
-              </div>
-            </TableCell>
-          </TableRow>
-        ) : (
-          files.map((file) => (
-            <TableRow key={file.id}>
-              <TableCell>
-                <Checkbox
-                  checked={selectedFiles.includes(file.id)}
-                  onCheckedChange={() => onFileSelect(file.id)}
-                />
-              </TableCell>
-              <TableCell>{file.name}</TableCell>
-              <TableCell>
-                <div className="flex flex-wrap gap-1">
-                  {file.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </TableCell>
-              <TableCell>{file.content_type}</TableCell>
-              <TableCell>{formatFileSize(file.size)}</TableCell>
-              <TableCell>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onShare(file.id)}
-                  >
-                    <Share className="w-4 h-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))
-        )}
+        {renderTableContent()}
       </TableBody>
     </Table>
   );

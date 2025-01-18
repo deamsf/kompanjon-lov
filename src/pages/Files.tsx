@@ -1,34 +1,26 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Filter } from "lucide-react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { FileUploadButton } from "@/components/file-manager/FileUploadButton";
 import { ShareModal } from "@/components/file-manager/ShareModal";
-import { FileList } from "@/components/file-manager/FileList";
-import { FileSearch } from "@/components/file-manager/FileSearch";
 import { FileSidebar } from "@/components/file-manager/FileSidebar";
+import { FileActions } from "@/components/file-manager/FileActions";
+import { FileContainer } from "@/components/file-manager/FileContainer";
 import { FileItem } from "@/types/files";
 
-const Index = () => {
-  const [files, setFiles] = useState<FileItem[]>([]);
+const Files = () => {
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [sortField, setSortField] = useState<'name' | 'size' | 'type'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [selectedFileForShare, setSelectedFileForShare] = useState<string | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchFiles();
-  }, [sortField, sortDirection, searchTerm, selectedTags]);
-
-  const fetchFiles = async () => {
-    try {
+  const { data: files = [], isLoading, refetch } = useQuery({
+    queryKey: ['files', sortField, sortDirection, searchTerm, selectedTags],
+    queryFn: async () => {
       let query = supabase
         .from('files')
         .select(`
@@ -56,12 +48,10 @@ const Index = () => {
 
       if (error) throw error;
 
-      const formattedFiles = data.map((file: any) => ({
+      return data.map((file: any) => ({
         ...file,
         tags: file.file_tags?.map((ft: any) => ft.tags.name) || [],
-      }));
-
-      const sortedFiles = formattedFiles.sort((a: any, b: any) => {
+      })).sort((a: any, b: any) => {
         const aValue = a[sortField];
         const bValue = b[sortField];
         const modifier = sortDirection === 'asc' ? 1 : -1;
@@ -70,19 +60,8 @@ const Index = () => {
         if (aValue > bValue) return 1 * modifier;
         return 0;
       });
-
-      setFiles(sortedFiles);
-    } catch (error) {
-      console.error('Error fetching files:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch files",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
     }
-  };
+  });
 
   const handleSort = (field: 'name' | 'size' | 'type') => {
     if (sortField === field) {
@@ -110,16 +89,10 @@ const Index = () => {
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Files</h1>
-        <div className="flex gap-4">
-          <FileUploadButton
-            onUploadComplete={() => fetchFiles()}
-            tags={selectedTags}
-          />
-          <Button variant="outline">
-            <Filter className="w-4 h-4 mr-2" />
-            Filter
-          </Button>
-        </div>
+        <FileActions
+          onUploadComplete={() => refetch()}
+          selectedTags={selectedTags}
+        />
       </div>
 
       <div className="grid grid-cols-12 gap-6">
@@ -131,24 +104,16 @@ const Index = () => {
         </div>
 
         <div className="col-span-9">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex gap-4 mb-4">
-                <FileSearch
-                  searchTerm={searchTerm}
-                  onSearch={setSearchTerm}
-                />
-              </div>
-              <FileList
-                files={files}
-                isLoading={isLoading}
-                selectedFiles={selectedFiles}
-                onFileSelect={handleFileSelect}
-                onShare={handleShare}
-                onSort={handleSort}
-              />
-            </CardContent>
-          </Card>
+          <FileContainer
+            files={files}
+            isLoading={isLoading}
+            selectedFiles={selectedFiles}
+            searchTerm={searchTerm}
+            onSearch={setSearchTerm}
+            onFileSelect={handleFileSelect}
+            onShare={handleShare}
+            onSort={handleSort}
+          />
         </div>
       </div>
 
@@ -166,4 +131,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Files;
