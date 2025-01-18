@@ -166,6 +166,36 @@ export type Database = {
           },
         ]
       }
+      planning_items: {
+        Row: {
+          created_at: string | null
+          end_date: string
+          id: string
+          order_index: number
+          start_date: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          end_date: string
+          id?: string
+          order_index: number
+          start_date: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string
+          id?: string
+          order_index?: number
+          start_date?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       shares: {
         Row: {
           access_password: string
