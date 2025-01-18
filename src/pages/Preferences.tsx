@@ -26,7 +26,7 @@ const Preferences = () => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       return data;
@@ -39,9 +39,9 @@ const Preferences = () => {
       if (!userId) throw new Error("Not authenticated");
       
       const updates = {
-        first_name: formData.get('firstName'),
-        last_name: formData.get('lastName'),
-        email: formData.get('email'),
+        first_name: String(formData.get('firstName') || ''),
+        last_name: String(formData.get('lastName') || ''),
+        email: String(formData.get('email') || ''),
         updated_at: new Date().toISOString(),
       };
 
