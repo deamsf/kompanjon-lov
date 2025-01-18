@@ -25,6 +25,7 @@ interface PlanningItem {
   start_date: string;
   end_date: string;
   order_index: number;
+  user_id: string;
 }
 
 const Planning = () => {
@@ -50,9 +51,12 @@ const Planning = () => {
 
   const createMutation = useMutation({
     mutationFn: async (newItem: Omit<PlanningItem, 'id'>) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('planning_items')
-        .insert([newItem])
+        .insert([{ ...newItem, user_id: user.id }])
         .select()
         .single();
       
@@ -73,9 +77,12 @@ const Planning = () => {
 
   const updateMutation = useMutation({
     mutationFn: async (item: PlanningItem) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('planning_items')
-        .update(item)
+        .update({ ...item, user_id: user.id })
         .eq('id', item.id)
         .select()
         .single();
@@ -114,15 +121,27 @@ const Planning = () => {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
+    if (!startDate || !endDate) {
+      toast.error("Please select both start and end dates");
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("You must be logged in");
+      return;
+    }
+
     const itemData = {
       title: formData.get('title') as string,
-      start_date: startDate ? format(startDate, 'yyyy-MM-dd') : '',
-      end_date: endDate ? format(endDate, 'yyyy-MM-dd') : '',
+      start_date: format(startDate, 'yyyy-MM-dd'),
+      end_date: format(endDate, 'yyyy-MM-dd'),
       order_index: editingItem ? editingItem.order_index : planningItems.length,
+      user_id: user.id
     };
 
     if (editingItem) {

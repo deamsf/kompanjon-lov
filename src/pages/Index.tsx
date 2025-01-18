@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { AuthError, AuthApiError } from "@supabase/supabase-js";
 
 const Index = () => {
@@ -29,50 +29,21 @@ const Index = () => {
     setIsLoading(true);
 
     try {
-      // First check if user exists
-      const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers();
-      const userExists = users?.some(user => user.email === email.trim());
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-      if (getUserError) {
-        throw getUserError;
+      if (signInError) {
+        throw signInError;
       }
 
-      if (userExists) {
-        // User exists, try to sign in
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-
-        if (signInError) {
-          throw signInError;
-        }
-
-        if (signInData.session) {
-          toast({
-            title: "Success",
-            description: "Logged in successfully",
-          });
-          navigate("/files");
-        }
-      } else {
-        // User doesn't exist, create new account
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-          },
-        });
-
-        if (signUpError) {
-          throw signUpError;
-        }
-
+      if (signInData.session) {
         toast({
           title: "Success",
-          description: "Please check your email for verification link",
+          description: "Logged in successfully",
         });
+        navigate("/files");
       }
     } catch (error) {
       const authError = error as AuthError;
@@ -87,9 +58,6 @@ const Index = () => {
             break;
           case "Email not confirmed":
             errorMessage = "Please verify your email address";
-            break;
-          case "Invalid email or password":
-            errorMessage = "The email or password you entered is incorrect";
             break;
           default:
             errorMessage = authError.message;
@@ -136,9 +104,6 @@ const Index = () => {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Loading..." : "Login"}
             </Button>
-            <p className="text-sm text-center text-muted-foreground mt-2">
-              Enter your email and password to sign in or create an account // jo, an of ed@gmail.com met pw azerazer
-            </p>
           </form>
         </CardContent>
       </Card>

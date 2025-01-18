@@ -21,6 +21,7 @@ interface EmailTemplate {
   name: string;
   subject: string;
   body: string;
+  user_id: string;
 }
 
 const Communication = () => {
@@ -44,9 +45,12 @@ const Communication = () => {
 
   const createMutation = useMutation({
     mutationFn: async (newTemplate: Omit<EmailTemplate, 'id'>) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('email_templates')
-        .insert([newTemplate])
+        .insert([{ ...newTemplate, user_id: user.id }])
         .select()
         .single();
       
@@ -67,9 +71,12 @@ const Communication = () => {
 
   const updateMutation = useMutation({
     mutationFn: async (template: EmailTemplate) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('email_templates')
-        .update(template)
+        .update({ ...template, user_id: user.id })
         .eq('id', template.id)
         .select()
         .single();
@@ -108,7 +115,7 @@ const Communication = () => {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
@@ -118,10 +125,16 @@ const Communication = () => {
       body: formData.get('body') as string,
     };
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("You must be logged in");
+      return;
+    }
+
     if (editingTemplate) {
-      updateMutation.mutate({ ...templateData, id: editingTemplate.id });
+      updateMutation.mutate({ ...templateData, id: editingTemplate.id, user_id: user.id });
     } else {
-      createMutation.mutate(templateData);
+      createMutation.mutate({ ...templateData, user_id: user.id });
     }
   };
 
