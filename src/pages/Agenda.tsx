@@ -5,13 +5,6 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { TimeGrid } from "@/components/agenda/TimeGrid";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
 const partnerCategories = [
@@ -46,12 +39,14 @@ const Agenda = () => {
         return;
       }
 
+      const weekEndDate = addDays(weekStart, 7);
+      
       const { data, error } = await supabase
         .from("availability_slots")
         .select("*")
         .eq("user_id", session.user.id)
-        .gte("start_time", format(weekStart, "yyyy-MM-dd"))
-        .lt("end_time", format(addDays(weekStart, 7), "yyyy-MM-dd"));
+        .gte("start_time", format(weekStart, "yyyy-MM-dd'T'HH:mm:ss'Z'"))
+        .lt("end_time", format(weekEndDate, "yyyy-MM-dd'T'HH:mm:ss'Z'"));
 
       if (error) throw error;
 
@@ -139,13 +134,13 @@ const Agenda = () => {
       });
       setSelectedTimeSlots(newSlots);
 
-      // Convert to database format and save
+      // Delete existing slots for the affected time range
       const slotsToSave = Array.from(currentDaySlots).map(slotKey => {
         const [date, time] = slotKey.split("-");
         return {
           user_id: session.user.id,
-          start_time: `${date}T${time}:00.000Z`,
-          end_time: `${date}T${time}:00.000Z`,
+          start_time: `${date}T${time}:00Z`,
+          end_time: `${date}T${time}:00Z`,
           partner_categories: selectedCategories
         };
       });
