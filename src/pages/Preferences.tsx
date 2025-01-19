@@ -33,15 +33,15 @@ const Preferences = () => {
   const queryClient = useQueryClient();
   const [userId, setUserId] = useState<string | null>(null);
 
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+  });
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) setUserId(session.user.id);
     });
   }, []);
-
-  const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
-  });
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile', userId],
@@ -57,16 +57,18 @@ const Preferences = () => {
       return data;
     },
     enabled: !!userId,
-    onSuccess: (data) => {
-      if (data) {
-        form.reset({
-          first_name: data.first_name || '',
-          last_name: data.last_name || '',
-          email: data.email || '',
-        });
-      }
-    },
   });
+
+  // Use useEffect to set form values when profile data is loaded
+  useEffect(() => {
+    if (profile) {
+      form.reset({
+        first_name: profile.first_name || '',
+        last_name: profile.last_name || '',
+        email: profile.email || '',
+      });
+    }
+  }, [profile, form]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (values: ProfileFormValues) => {
