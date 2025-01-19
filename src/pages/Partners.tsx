@@ -31,6 +31,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Partner {
   id: string;
@@ -38,6 +41,7 @@ interface Partner {
   email: string;
   components: string[];
   tags: string[];
+  user_id: string;
 }
 
 const projectComponents = [
@@ -49,33 +53,96 @@ const projectComponents = [
 ];
 
 const Partners = () => {
-  const [partners, setPartners] = useState<Partner[]>([]);
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<string>("all");
+  const queryClient = useQueryClient();
+
+  const { data: partners = [], isLoading } = useQuery({
+    queryKey: ['partners'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('partners')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as Partner[];
+    },
+  });
 
   const filteredPartners = selectedComponent === "all"
     ? partners
     : partners.filter((partner) => partner.components.includes(selectedComponent));
 
-  const handleSavePartner = (data: Omit<Partner, "id">) => {
-    if (editingPartner) {
-      setPartners(
-        partners.map((partner) =>
-          partner.id === editingPartner.id ? { ...partner, ...data } : partner
-        )
-      );
-      setEditingPartner(null);
-    } else {
-      const newPartner: Partner = {
-        id: Math.random().toString(36).substr(2, 9),
-        ...data,
-      };
-      setPartners([...partners, newPartner]);
-    }
-  };
+  const addPartnerMutation = useMutation({
+    mutationFn: async (newPartner: Omit<Partner, 'id' | 'user_id'>) => {
+      const { data, error } = await supabase
+        .from('partners')
+        .insert([newPartner])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['partners'] });
+      toast.success('Partner added successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to add partner');
+      console.error('Error:', error);
+    },
+  });
 
-  const handleDeletePartner = (partnerId: string) => {
-    setPartners(partners.filter((partner) => partner.id !== partnerId));
+  const updatePartnerMutation = useMutation({
+    mutationFn: async (partner: Partner) => {
+      const { data, error } = await supabase
+        .from('partners')
+        .update(partner)
+        .eq('id', partner.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['partners'] });
+      toast.success('Partner updated successfully');
+      setEditingPartner(null);
+    },
+    onError: (error) => {
+      toast.error('Failed to update partner');
+      console.error('Error:', error);
+    },
+  });
+
+  const deletePartnerMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('partners')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['partners'] });
+      toast.success('Partner deleted successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to delete partner');
+      console.error('Error:', error);
+    },
+  });
+
+  const handleSavePartner = (data: Omit<Partner, 'id' | 'user_id'>) => {
+    if (editingPartner) {
+      updatePartnerMutation.mutate({ ...editingPartner, ...data });
+    } else {
+      addPartnerMutation.mutate(data);
+    }
   };
 
   return (

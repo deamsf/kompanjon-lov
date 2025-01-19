@@ -17,6 +17,8 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TodoItem {
   id: string;
@@ -26,22 +28,118 @@ interface TodoItem {
   assignee: string;
   deadline: string;
   status: "not-yet" | "todo" | "in-progress" | "waiting" | "done";
+  user_id: string;
 }
 
 const Todo = () => {
-  const [todos, setTodos] = useState<TodoItem[]>([]);
   const [draggedItem, setDraggedItem] = useState<TodoItem | null>(null);
   const [editingTodo, setEditingTodo] = useState<TodoItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const queryClient = useQueryClient();
 
-  const columns = [
-    { id: "not-yet", title: "Not Yet" },
-    { id: "todo", title: "To Do" },
-    { id: "in-progress", title: "In Progress" },
-    { id: "waiting", title: "Waiting" },
-    { id: "done", title: "Done" },
-  ];
+  const { data: todos = [], isLoading } = useQuery({
+    queryKey: ['todos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('todos')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as TodoItem[];
+    },
+  });
+
+  const addTodoMutation = useMutation({
+    mutationFn: async (newTodo: Omit<TodoItem, 'id' | 'user_id'>) => {
+      const { data, error } = await supabase
+        .from('todos')
+        .insert([newTodo])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      toast.success('Task created successfully');
+      setIsDialogOpen(false);
+      setEditingTodo(null);
+      setSelectedDate(undefined);
+    },
+    onError: (error) => {
+      toast.error('Failed to create task');
+      console.error('Error:', error);
+    },
+  });
+
+  const updateTodoMutation = useMutation({
+    mutationFn: async (todo: TodoItem) => {
+      const { data, error } = await supabase
+        .from('todos')
+        .update(todo)
+        .eq('id', todo.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      toast.success('Task updated successfully');
+      setIsDialogOpen(false);
+      setEditingTodo(null);
+      setSelectedDate(undefined);
+    },
+    onError: (error) => {
+      toast.error('Failed to update task');
+      console.error('Error:', error);
+    },
+  });
+
+  const deleteTodoMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('todos')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      toast.success('Task deleted successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to delete task');
+      console.error('Error:', error);
+    },
+  });
+
+  const updateTodoStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: TodoItem['status'] }) => {
+      const { data, error } = await supabase
+        .from('todos')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      toast.success('Task status updated successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to update task status');
+      console.error('Error:', error);
+    },
+  });
 
   const handleDragStart = (todo: TodoItem) => {
     setDraggedItem(todo);
@@ -51,61 +149,39 @@ const Todo = () => {
     e.preventDefault();
   };
 
-  const handleDrop = (status: TodoItem["status"]) => {
+  const handleDrop = (status: TodoItem['status']) => {
     if (draggedItem) {
-      const updatedTodos = todos.map((todo) =>
-        todo.id === draggedItem.id ? { ...todo, status } : todo
-      );
-      setTodos(updatedTodos);
+      updateTodoStatusMutation.mutate({ id: draggedItem.id, status });
       setDraggedItem(null);
-      toast.success("Task status updated successfully");
     }
   };
 
-  const handleDeleteTodo = (id: string) => {
-    setTodos(todos.filter((todo) => todo.id !== id));
-    toast.success("Task deleted successfully");
-  };
-
-  const handleEditTodo = (todo: TodoItem) => {
-    setEditingTodo(todo);
-    setSelectedDate(new Date(todo.deadline));
-    setIsDialogOpen(true);
-  };
-
-  const handleSaveTodo = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveTodo = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const todoData = {
-      title: formData.get("title") as string,
-      description: formData.get("description") as string,
-      author: formData.get("author") as string,
-      assignee: formData.get("assignee") as string,
-      deadline: selectedDate ? format(selectedDate, "yyyy-MM-dd") : "",
+      title: formData.get('title') as string,
+      description: formData.get('description') as string,
+      author: formData.get('author') as string,
+      assignee: formData.get('assignee') as string,
+      deadline: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '',
+      status: editingTodo ? editingTodo.status : 'not-yet' as const,
     };
 
     if (editingTodo) {
-      const updatedTodos = todos.map((todo) =>
-        todo.id === editingTodo.id
-          ? { ...todo, ...todoData }
-          : todo
-      );
-      setTodos(updatedTodos);
-      toast.success("Task updated successfully");
+      updateTodoMutation.mutate({ ...editingTodo, ...todoData });
     } else {
-      const newTodo: TodoItem = {
-        id: Math.random().toString(36).substr(2, 9),
-        status: "not-yet",
-        ...todoData,
-      };
-      setTodos([...todos, newTodo]);
-      toast.success("Task created successfully");
+      addTodoMutation.mutate(todoData);
     }
-    
-    setIsDialogOpen(false);
-    setEditingTodo(null);
-    setSelectedDate(undefined);
   };
+
+  const columns = [
+    { id: "not-yet", title: "Not Yet" },
+    { id: "todo", title: "To Do" },
+    { id: "in-progress", title: "In Progress" },
+    { id: "waiting", title: "Waiting" },
+    { id: "done", title: "Done" },
+  ];
 
   return (
     <div className="container mx-auto p-6">

@@ -166,6 +166,36 @@ export type Database = {
           },
         ]
       }
+      partners: {
+        Row: {
+          components: string[]
+          created_at: string | null
+          email: string
+          id: string
+          name: string
+          tags: string[]
+          user_id: string
+        }
+        Insert: {
+          components: string[]
+          created_at?: string | null
+          email: string
+          id?: string
+          name: string
+          tags: string[]
+          user_id: string
+        }
+        Update: {
+          components?: string[]
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+          tags?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
       planning_items: {
         Row: {
           created_at: string | null
@@ -276,6 +306,42 @@ export type Database = {
           created_by?: string
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      todos: {
+        Row: {
+          assignee: string
+          author: string
+          created_at: string | null
+          deadline: string
+          description: string
+          id: string
+          status: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          assignee: string
+          author: string
+          created_at?: string | null
+          deadline: string
+          description: string
+          id?: string
+          status: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          assignee?: string
+          author?: string
+          created_at?: string | null
+          deadline?: string
+          description?: string
+          id?: string
+          status?: string
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }

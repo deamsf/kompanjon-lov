@@ -7,10 +7,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTheme } from "next-themes";
 
 const Preferences = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { setTheme, theme } = useTheme();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -149,11 +151,11 @@ const Preferences = () => {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <Label htmlFor="dark-mode">Dark Mode</Label>
-              <Switch id="dark-mode" />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="compact-view">Compact View</Label>
-              <Switch id="compact-view" />
+              <Switch
+                id="dark-mode"
+                checked={theme === 'dark'}
+                onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+              />
             </div>
           </CardContent>
         </Card>
