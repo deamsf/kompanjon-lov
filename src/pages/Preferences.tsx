@@ -7,12 +7,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/providers/theme-provider";
 
 const Preferences = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const { setTheme, theme } = useTheme();
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -90,6 +90,7 @@ const Preferences = () => {
                   id="firstName"
                   name="firstName"
                   defaultValue={profile?.first_name || ''}
+                  placeholder="Enter your first name"
                 />
               </div>
               <div className="space-y-2">
@@ -98,6 +99,7 @@ const Preferences = () => {
                   id="lastName"
                   name="lastName"
                   defaultValue={profile?.last_name || ''}
+                  placeholder="Enter your last name"
                 />
               </div>
               <div className="space-y-2">
@@ -107,6 +109,7 @@ const Preferences = () => {
                   name="email"
                   type="email"
                   defaultValue={profile?.email || ''}
+                  placeholder="Enter your email"
                 />
               </div>
               <Button 
@@ -144,7 +147,11 @@ const Preferences = () => {
               <Switch
                 id="dark-mode"
                 checked={theme === 'dark'}
-                onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                onCheckedChange={(checked) => {
+                  const newTheme = checked ? 'dark' : 'light';
+                  setTheme(newTheme);
+                  localStorage.setItem('app-theme', newTheme);
+                }}
               />
             </div>
           </CardContent>

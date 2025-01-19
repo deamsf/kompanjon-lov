@@ -27,8 +27,8 @@ const Navbar = () => {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUserId(user.id);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) setUserId(session.user.id);
     });
   }, []);
 
@@ -48,7 +48,7 @@ const Navbar = () => {
     enabled: !!userId
   });
 
-  const displayName = profile?.username || profile?.first_name || 'User';
+  const displayName = profile?.first_name || 'User';
 
   const navItems = [
     { path: "/files", label: "Files" },
@@ -94,7 +94,11 @@ const Navbar = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={() => {
+              const newTheme = theme === "dark" ? "light" : "dark";
+              setTheme(newTheme);
+              localStorage.setItem('app-theme', newTheme);
+            }}
           >
             {theme === "dark" ? (
               <Sun className="h-5 w-5" />
