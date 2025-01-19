@@ -144,7 +144,6 @@ const Agenda = () => {
         };
       });
 
-      // Delete existing slots for the affected time range
       const { error: deleteError } = await supabase
         .from("availability_slots")
         .delete()
@@ -153,7 +152,6 @@ const Agenda = () => {
 
       if (deleteError) throw deleteError;
 
-      // Insert new slots
       const { error: insertError } = await supabase
         .from("availability_slots")
         .insert(slotsToSave);
