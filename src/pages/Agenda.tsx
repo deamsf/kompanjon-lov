@@ -45,8 +45,8 @@ const Agenda = () => {
         .from("availability_slots")
         .select("*")
         .eq("user_id", session.user.id)
-        .gte("start_time", format(weekStart, "yyyy-MM-dd'T'00:00:00'Z'"))
-        .lt("end_time", format(weekEndDate, "yyyy-MM-dd'T'23:59:59'Z'"));
+        .gte("start_time", format(weekStart, "yyyy-MM-dd'T'00:00:00.000'Z'"))
+        .lt("end_time", format(weekEndDate, "yyyy-MM-dd'T'23:59:59.999'Z'"));
 
       if (error) throw error;
 
@@ -134,7 +134,6 @@ const Agenda = () => {
       });
       setSelectedTimeSlots(newSlots);
 
-      // Delete existing slots for the affected time range
       const slotsToSave = Array.from(currentDaySlots).map(slotKey => {
         const [date, time] = slotKey.split("-");
         return {
