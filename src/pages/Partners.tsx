@@ -57,9 +57,21 @@ const Partners = () => {
   const [selectedComponent, setSelectedComponent] = useState<string>("all");
   const queryClient = useQueryClient();
 
+  const { data: sessionData } = useQuery({
+    queryKey: ['session'],
+    queryFn: async () => {
+      const { data } = await supabase.auth.getSession();
+      return data.session;
+    },
+  });
+
+  const userId = sessionData?.user?.id;
+
   const { data: partners = [], isLoading } = useQuery({
     queryKey: ['partners'],
     queryFn: async () => {
+      if (!userId) throw new Error("User not authenticated");
+      
       const { data, error } = await supabase
         .from('partners')
         .select('*')
@@ -68,17 +80,16 @@ const Partners = () => {
       if (error) throw error;
       return data as Partner[];
     },
+    enabled: !!userId,
   });
-
-  const filteredPartners = selectedComponent === "all"
-    ? partners
-    : partners.filter((partner) => partner.components.includes(selectedComponent));
 
   const addPartnerMutation = useMutation({
     mutationFn: async (newPartner: Omit<Partner, 'id' | 'user_id'>) => {
+      if (!userId) throw new Error("User not authenticated");
+      
       const { data, error } = await supabase
         .from('partners')
-        .insert([newPartner])
+        .insert([{ ...newPartner, user_id: userId }])
         .select()
         .single();
       
@@ -97,6 +108,8 @@ const Partners = () => {
 
   const updatePartnerMutation = useMutation({
     mutationFn: async (partner: Partner) => {
+      if (!userId) throw new Error("User not authenticated");
+      
       const { data, error } = await supabase
         .from('partners')
         .update(partner)
@@ -120,6 +133,8 @@ const Partners = () => {
 
   const deletePartnerMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!userId) throw new Error("User not authenticated");
+      
       const { error } = await supabase
         .from('partners')
         .delete()
@@ -137,13 +152,53 @@ const Partners = () => {
     },
   });
 
-  const handleSavePartner = (data: Omit<Partner, 'id' | 'user_id'>) => {
+  const filteredPartners = selectedComponent === "all"
+    ? partners
+    : partners.filter((partner) => partner.components.includes(selectedComponent));
+
+  const handleSavePartner = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!userId) {
+      toast.error('Please log in to manage partners');
+      return;
+    }
+
+    const formData = new FormData(e.currentTarget);
+    const components = projectComponents.filter(
+      (component) => formData.get(component) === "on"
+    );
+    const tags = formData
+      .get("tags")
+      ?.toString()
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean) || [];
+
+    const partnerData = {
+      name: formData.get("name") as string,
+      email: formData.get("email") as string,
+      components,
+      tags,
+    };
+
     if (editingPartner) {
-      updatePartnerMutation.mutate({ ...editingPartner, ...data });
+      updatePartnerMutation.mutate({ ...editingPartner, ...partnerData });
     } else {
-      addPartnerMutation.mutate(data);
+      addPartnerMutation.mutate(partnerData);
     }
   };
+
+  const handleDeletePartner = (id: string) => {
+    deletePartnerMutation.mutate(id);
+  };
+
+  if (!userId) {
+    return (
+      <div className="container mx-auto p-6 text-center">
+        <h2 className="text-xl">Please log in to manage partners</h2>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6">
