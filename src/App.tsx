@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/providers/theme-provider";
 import Navbar from "./components/layout/Navbar";
 import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import Files from "./pages/Files";
 import Agenda from "./pages/Agenda";
 import Planning from "./pages/Planning";
@@ -50,6 +51,14 @@ const App = () => (
           <Navbar />
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/files"
               element={

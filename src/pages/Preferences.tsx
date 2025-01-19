@@ -1,24 +1,47 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useTheme } from "@/providers/theme-provider";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useTheme } from "@/providers/theme-provider";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+const profileSchema = z.object({
+  first_name: z.string().min(1, "First name is required"),
+  last_name: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email address"),
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
 
 const Preferences = () => {
-  const [userId, setUserId] = useState<string | null>(null);
-  const queryClient = useQueryClient();
   const { theme, setTheme } = useTheme();
+  const queryClient = useQueryClient();
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) setUserId(session.user.id);
     });
   }, []);
+
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+  });
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile', userId],
@@ -28,28 +51,35 @@ const Preferences = () => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle();
+        .single();
       
       if (error) throw error;
       return data;
     },
-    enabled: !!userId
+    enabled: !!userId,
+    onSuccess: (data) => {
+      if (data) {
+        form.reset({
+          first_name: data.first_name || '',
+          last_name: data.last_name || '',
+          email: data.email || '',
+        });
+      }
+    },
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (formData: FormData) => {
+    mutationFn: async (values: ProfileFormValues) => {
       if (!userId) throw new Error("Not authenticated");
       
-      const updates = {
-        first_name: formData.get('firstName')?.toString() || '',
-        last_name: formData.get('lastName')?.toString() || '',
-        email: formData.get('email')?.toString() || '',
-        updated_at: new Date().toISOString(),
-      };
-
       const { error } = await supabase
         .from('profiles')
-        .update(updates)
+        .update({
+          first_name: values.first_name,
+          last_name: values.last_name,
+          email: values.email,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', userId);
 
       if (error) throw error;
@@ -64,10 +94,8 @@ const Preferences = () => {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    updateProfileMutation.mutate(formData);
+  const onSubmit = (values: ProfileFormValues) => {
+    updateProfileMutation.mutate(values);
   };
 
   if (isLoading) {
@@ -83,42 +111,59 @@ const Preferences = () => {
             <CardTitle>Profile Information</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  name="firstName"
-                  defaultValue={profile?.first_name || ''}
-                  placeholder="Enter your first name"
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="first_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter your first name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  name="lastName"
-                  defaultValue={profile?.last_name || ''}
-                  placeholder="Enter your last name"
+                <FormField
+                  control={form.control}
+                  name="last_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter your last name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
+                <FormField
+                  control={form.control}
                   name="email"
-                  type="email"
-                  defaultValue={profile?.email || ''}
-                  placeholder="Enter your email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="email" 
+                          placeholder="Enter your email" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <Button 
-                type="submit"
-                disabled={updateProfileMutation.isPending}
-              >
-                {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
-              </Button>
-            </form>
+                <Button 
+                  type="submit"
+                  disabled={updateProfileMutation.isPending}
+                >
+                  {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </form>
+            </Form>
           </CardContent>
         </Card>
 
