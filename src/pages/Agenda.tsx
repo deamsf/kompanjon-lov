@@ -45,7 +45,7 @@ const Agenda = () => {
         .from("availability_slots")
         .select("*")
         .eq("user_id", session.user.id)
-        .gte("start_time", format(weekStart, "yyyy-MM-dd'T'00:00:00.000'Z'"))
+        .gte("start_time", format(weekStart, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"))
         .lt("end_time", format(weekEndDate, "yyyy-MM-dd'T'23:59:59.999'Z'"));
 
       if (error) throw error;
@@ -136,10 +136,12 @@ const Agenda = () => {
 
       const slotsToSave = Array.from(currentDaySlots).map(slotKey => {
         const [date, time] = slotKey.split("-");
+        const startTime = `${date}T${time}:00.000Z`;
+        const endTime = `${date}T${time}:59.999Z`;
         return {
           user_id: session.user.id,
-          start_time: `${date}T${time}:00.000Z`,
-          end_time: `${date}T${time}:59.999Z`,
+          start_time: startTime,
+          end_time: endTime,
           partner_categories: selectedCategories
         };
       });
