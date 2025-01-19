@@ -123,7 +123,6 @@ const Partners = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['partners'] });
       toast.success('Partner updated successfully');
-      setEditingPartner(null);
     },
     onError: (error) => {
       toast.error('Failed to update partner');
@@ -156,14 +155,16 @@ const Partners = () => {
     ? partners
     : partners.filter((partner) => partner.components.includes(selectedComponent));
 
-  const handleSavePartner = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (!userId) {
       toast.error('Please log in to manage partners');
       return;
     }
 
-    const formData = new FormData(e.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    
     const components = projectComponents.filter(
       (component) => formData.get(component) === "on"
     );
@@ -231,28 +232,7 @@ const Partners = () => {
                   {editingPartner ? "Edit Partner" : "Add New Partner"}
                 </DialogTitle>
               </DialogHeader>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const formData = new FormData(e.currentTarget);
-                  const components = projectComponents.filter(
-                    (component) => formData.get(component) === "on"
-                  );
-                  const tags = formData
-                    .get("tags")
-                    ?.toString()
-                    .split(",")
-                    .map((tag) => tag.trim())
-                    .filter(Boolean) || [];
-                  handleSavePartner({
-                    name: formData.get("name") as string,
-                    email: formData.get("email") as string,
-                    components,
-                    tags,
-                  });
-                }}
-                className="space-y-4"
-              >
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <Label htmlFor="name">Name</Label>
                   <Input
