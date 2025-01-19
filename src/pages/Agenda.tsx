@@ -45,8 +45,8 @@ const Agenda = () => {
         .from("availability_slots")
         .select("*")
         .eq("user_id", session.user.id)
-        .gte("start_time", format(weekStart, "yyyy-MM-dd'T'HH:mm:ss'Z'"))
-        .lt("end_time", format(weekEndDate, "yyyy-MM-dd'T'HH:mm:ss'Z'"));
+        .gte("start_time", format(weekStart, "yyyy-MM-dd'T'00:00:00'Z'"))
+        .lt("end_time", format(weekEndDate, "yyyy-MM-dd'T'23:59:59'Z'"));
 
       if (error) throw error;
 
@@ -139,8 +139,8 @@ const Agenda = () => {
         const [date, time] = slotKey.split("-");
         return {
           user_id: session.user.id,
-          start_time: `${date}T${time}:00Z`,
-          end_time: `${date}T${time}:00Z`,
+          start_time: `${date}T${time}:00.000Z`,
+          end_time: `${date}T${time}:59.999Z`,
           partner_categories: selectedCategories
         };
       });
