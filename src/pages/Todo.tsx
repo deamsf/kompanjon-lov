@@ -39,8 +39,15 @@ const Todo = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const queryClient = useQueryClient();
 
-  const { data: session } = await supabase.auth.getSession();
-  const userId = session?.session?.user?.id;
+  const { data: sessionData } = useQuery({
+    queryKey: ['session'],
+    queryFn: async () => {
+      const { data } = await supabase.auth.getSession();
+      return data.session;
+    },
+  });
+
+  const userId = sessionData?.user?.id;
 
   const { data: todos = [], isLoading } = useQuery({
     queryKey: ['todos'],
@@ -371,3 +378,6 @@ const Todo = () => {
       </div>
     </div>
   );
+};
+
+export default Todo;
