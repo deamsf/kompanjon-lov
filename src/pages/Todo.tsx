@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -38,9 +39,14 @@ const Todo = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const queryClient = useQueryClient();
 
+  const { data: session } = await supabase.auth.getSession();
+  const userId = session?.session?.user?.id;
+
   const { data: todos = [], isLoading } = useQuery({
     queryKey: ['todos'],
     queryFn: async () => {
+      if (!userId) throw new Error("User not authenticated");
+      
       const { data, error } = await supabase
         .from('todos')
         .select('*')
@@ -49,13 +55,16 @@ const Todo = () => {
       if (error) throw error;
       return data as TodoItem[];
     },
+    enabled: !!userId,
   });
 
   const addTodoMutation = useMutation({
-    mutationFn: async (newTodo: Omit<TodoItem, 'id' | 'user_id'>) => {
+    mutationFn: async (newTodo: Omit<TodoItem, 'id' | 'created_at'>) => {
+      if (!userId) throw new Error("User not authenticated");
+      
       const { data, error } = await supabase
         .from('todos')
-        .insert([newTodo])
+        .insert([{ ...newTodo, user_id: userId }])
         .select()
         .single();
       
@@ -77,6 +86,8 @@ const Todo = () => {
 
   const updateTodoMutation = useMutation({
     mutationFn: async (todo: TodoItem) => {
+      if (!userId) throw new Error("User not authenticated");
+      
       const { data, error } = await supabase
         .from('todos')
         .update(todo)
@@ -102,6 +113,8 @@ const Todo = () => {
 
   const deleteTodoMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!userId) throw new Error("User not authenticated");
+      
       const { error } = await supabase
         .from('todos')
         .delete()
@@ -121,6 +134,8 @@ const Todo = () => {
 
   const updateTodoStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: TodoItem['status'] }) => {
+      if (!userId) throw new Error("User not authenticated");
+      
       const { data, error } = await supabase
         .from('todos')
         .update({ status })
@@ -158,6 +173,11 @@ const Todo = () => {
 
   const handleSaveTodo = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!userId) {
+      toast.error('Please log in to create tasks');
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
     const todoData = {
       title: formData.get('title') as string,
@@ -166,6 +186,7 @@ const Todo = () => {
       assignee: formData.get('assignee') as string,
       deadline: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '',
       status: editingTodo ? editingTodo.status : 'not-yet' as const,
+      user_id: userId,
     };
 
     if (editingTodo) {
@@ -175,6 +196,16 @@ const Todo = () => {
     }
   };
 
+  const handleEditTodo = (todo: TodoItem) => {
+    setEditingTodo(todo);
+    setSelectedDate(new Date(todo.deadline));
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteTodo = (id: string) => {
+    deleteTodoMutation.mutate(id);
+  };
+
   const columns = [
     { id: "not-yet", title: "Not Yet" },
     { id: "todo", title: "To Do" },
@@ -182,6 +213,14 @@ const Todo = () => {
     { id: "waiting", title: "Waiting" },
     { id: "done", title: "Done" },
   ];
+
+  if (!userId) {
+    return (
+      <div className="container mx-auto p-6 text-center">
+        <h2 className="text-xl">Please log in to manage your tasks</h2>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6">
@@ -332,6 +371,3 @@ const Todo = () => {
       </div>
     </div>
   );
-};
-
-export default Todo;
