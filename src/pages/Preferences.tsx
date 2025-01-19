@@ -15,8 +15,8 @@ const Preferences = () => {
   const { setTheme, theme } = useTheme();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUserId(user.id);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) setUserId(session.user.id);
     });
   }, []);
 
@@ -41,7 +41,6 @@ const Preferences = () => {
       if (!userId) throw new Error("Not authenticated");
       
       const updates = {
-        username: formData.get('username')?.toString() || null,
         first_name: formData.get('firstName')?.toString() || '',
         last_name: formData.get('lastName')?.toString() || '',
         email: formData.get('email')?.toString() || '',
@@ -86,14 +85,6 @@ const Preferences = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  name="username"
-                  defaultValue={profile?.username || ''}
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
                 <Input
                   id="firstName"
@@ -134,12 +125,11 @@ const Preferences = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="email-notifications">Email Notifications</Label>
-              <Switch id="email-notifications" />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="push-notifications">Push Notifications</Label>
-              <Switch id="push-notifications" />
+              <div className="space-y-0.5">
+                <Label htmlFor="email-notifications">Email Notifications</Label>
+                <div className="text-sm text-muted-foreground">Coming soon</div>
+              </div>
+              <Switch id="email-notifications" disabled />
             </div>
           </CardContent>
         </Card>
