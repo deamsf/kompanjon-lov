@@ -65,7 +65,7 @@ const Navbar = () => {
   return (
     <div className="border-b">
       <div className="flex h-16 items-center px-4 container mx-auto">
-        <Link to="/files" className="flex items-center gap-2 mr-8">
+        <Link to="/dashboard" className="flex items-center gap-2 mr-8">
           <Shield className="h-6 w-6" />
           <span className="font-bold text-2xl">Kompanjon</span>
         </Link>

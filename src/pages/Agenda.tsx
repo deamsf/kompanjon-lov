@@ -1,18 +1,38 @@
 import { useState, useEffect } from "react";
-import { format, addDays, isSameDay, parseISO } from "date-fns";
+import { format, addDays, startOfWeek, isSameDay, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { TimeGrid } from "@/components/agenda/TimeGrid";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+
+const partnerCategories = [
+  "Frontend Development",
+  "Backend Development",
+  "UI/UX Design",
+  "Project Management",
+  "Quality Assurance",
+];
 
 const Agenda = () => {
-  const [weekStart, setWeekStart] = useState(new Date());
-  const [selectedTimeSlots, setSelectedTimeSlots] = useState<string[]>([]);
+  const [weekStart, setWeekStart] = useState(() => {
+    const today = new Date();
+    return startOfWeek(today, { weekStartsOn: 1 });
+  });
+  const [selectedTimeSlots, setSelectedTimeSlots] = useState<Map<string, string[]>>(new Map());
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartSlot, setDragStartSlot] = useState<string | null>(null);
-  const [savedSlots, setSavedSlots] = useState<any[]>([]);
-  const { toast } = useToast();
+  const [currentDaySlots, setCurrentDaySlots] = useState<Set<string>>(new Set());
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [dragStartDay, setDragStartDay] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchSavedSlots();
@@ -22,11 +42,7 @@ const Agenda = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to view availability slots",
-          variant: "destructive",
-        });
+        toast.error("You must be logged in to view availability slots");
         return;
       }
 
@@ -38,13 +54,15 @@ const Agenda = () => {
         .lt("end_time", format(addDays(weekStart, 7), "yyyy-MM-dd"));
 
       if (error) throw error;
-      setSavedSlots(data || []);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to fetch availability slots",
-        variant: "destructive",
+
+      const slotsMap = new Map<string, string[]>();
+      data?.forEach(slot => {
+        const slotKey = `${format(parseISO(slot.start_time), "yyyy-MM-dd")}-${format(parseISO(slot.start_time), "HH:mm")}`;
+        slotsMap.set(slotKey, slot.partner_categories);
       });
+      setSelectedTimeSlots(slotsMap);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to fetch availability slots");
     }
   };
 
@@ -67,103 +85,104 @@ const Agenda = () => {
   };
 
   const handleTimeSlotMouseDown = (day: Date, time: string) => {
-    const slotKey = `${format(day, "yyyy-MM-dd")}-${time}`;
     setIsDragging(true);
+    setDragStartDay(day);
+    const slotKey = `${format(day, "yyyy-MM-dd")}-${time}`;
     setDragStartSlot(slotKey);
-    setSelectedTimeSlots([slotKey]);
+    updateCurrentDaySlots(day, slotKey);
   };
 
   const handleTimeSlotMouseEnter = (day: Date, time: string) => {
-    if (isDragging && dragStartSlot) {
+    if (isDragging && dragStartDay && isSameDay(day, dragStartDay)) {
       const slotKey = `${format(day, "yyyy-MM-dd")}-${time}`;
-      setSelectedTimeSlots(prev => {
-        if (!prev.includes(slotKey)) {
-          return [...prev, slotKey];
-        }
-        return prev;
-      });
+      updateCurrentDaySlots(day, slotKey);
     }
   };
 
-  const handleTimeSlotMouseUp = () => {
-    setIsDragging(false);
-    setDragStartSlot(null);
+  const updateCurrentDaySlots = (day: Date, currentSlot: string) => {
+    if (!dragStartSlot) return;
+
+    const daySlots = new Set<string>();
+    const timeSlots = generateTimeSlots();
+    const [startTime, endTime] = dragStartSlot < currentSlot 
+      ? [dragStartSlot, currentSlot] 
+      : [currentSlot, dragStartSlot];
+
+    timeSlots.forEach(time => {
+      const slotKey = `${format(day, "yyyy-MM-dd")}-${time}`;
+      if (slotKey >= startTime && slotKey <= endTime) {
+        daySlots.add(slotKey);
+      }
+    });
+
+    setCurrentDaySlots(daySlots);
   };
 
-  const saveAvailabilitySlots = async () => {
+  const handleTimeSlotMouseUp = async () => {
+    if (!isDragging) return;
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to save availability slots",
-          variant: "destructive",
-        });
+        toast.error("You must be logged in to save availability slots");
         return;
       }
 
-      // Delete existing slots for the current week
+      if (selectedCategories.length === 0) {
+        toast.error("Please select at least one partner category");
+        return;
+      }
+
+      const newSlots = new Map(selectedTimeSlots);
+      currentDaySlots.forEach(slotKey => {
+        newSlots.set(slotKey, selectedCategories);
+      });
+      setSelectedTimeSlots(newSlots);
+
+      // Convert to database format and save
+      const slotsToSave = Array.from(currentDaySlots).map(slotKey => {
+        const [date, time] = slotKey.split("-");
+        return {
+          user_id: session.user.id,
+          start_time: `${date}T${time}:00.000Z`,
+          end_time: `${date}T${time}:00.000Z`,
+          partner_categories: selectedCategories
+        };
+      });
+
+      // Delete existing slots for the affected time range
       const { error: deleteError } = await supabase
         .from("availability_slots")
         .delete()
         .eq("user_id", session.user.id)
-        .gte("start_time", format(weekStart, "yyyy-MM-dd"))
-        .lt("end_time", format(addDays(weekStart, 7), "yyyy-MM-dd"));
+        .in("start_time", slotsToSave.map(slot => slot.start_time));
 
       if (deleteError) throw deleteError;
 
-      if (selectedTimeSlots.length === 0) {
-        await fetchSavedSlots();
-        return;
-      }
-
-      // Group consecutive slots into ranges
-      const ranges = selectedTimeSlots.sort().reduce((acc: any[], slot) => {
-        const [date, time] = slot.split("-");
-        const current = parseISO(`${date}T${time}`);
-
-        if (acc.length === 0) {
-          return [{
-            start_time: current.toISOString(),
-            end_time: new Date(current.getTime() + 30 * 60 * 1000).toISOString(),
-            user_id: session.user.id
-          }];
-        }
-
-        const lastRange = acc[acc.length - 1];
-        const lastEnd = new Date(lastRange.end_time);
-
-        if (current.getTime() - lastEnd.getTime() === 0) {
-          lastRange.end_time = new Date(current.getTime() + 30 * 60 * 1000).toISOString();
-          return acc;
-        }
-
-        return [...acc, {
-          start_time: current.toISOString(),
-          end_time: new Date(current.getTime() + 30 * 60 * 1000).toISOString(),
-          user_id: session.user.id
-        }];
-      }, []);
-
-      const { error } = await supabase
+      // Insert new slots
+      const { error: insertError } = await supabase
         .from("availability_slots")
-        .insert(ranges);
+        .insert(slotsToSave);
 
-      if (error) throw error;
+      if (insertError) throw insertError;
 
-      toast({
-        title: "Success",
-        description: "Availability slots saved successfully",
-      });
-
-      await fetchSavedSlots();
+      toast.success("Availability slots saved successfully");
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save availability slots",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Failed to save availability slots");
+    } finally {
+      setIsDragging(false);
+      setDragStartSlot(null);
+      setDragStartDay(null);
+      setCurrentDaySlots(new Set());
     }
+  };
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
   };
 
   return (
@@ -183,7 +202,22 @@ const Agenda = () => {
           >
             Next Week
           </Button>
-          <Button onClick={saveAvailabilitySlots}>Save Availability</Button>
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold mb-2">Partner Categories</h2>
+        <div className="flex flex-wrap gap-2">
+          {partnerCategories.map((category) => (
+            <Badge
+              key={category}
+              variant={selectedCategories.includes(category) ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => toggleCategory(category)}
+            >
+              {category}
+            </Badge>
+          ))}
         </div>
       </div>
 
@@ -202,6 +236,7 @@ const Agenda = () => {
             selectedTimeSlots={selectedTimeSlots}
             isDragging={isDragging}
             dragStartSlot={dragStartSlot}
+            currentDaySlots={currentDaySlots}
             onTimeSlotMouseDown={handleTimeSlotMouseDown}
             onTimeSlotMouseEnter={handleTimeSlotMouseEnter}
             onTimeSlotMouseUp={handleTimeSlotMouseUp}

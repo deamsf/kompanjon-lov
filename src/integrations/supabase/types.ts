@@ -14,6 +14,7 @@ export type Database = {
           created_at: string | null
           end_time: string
           id: string
+          partner_categories: string[]
           start_time: string
           user_id: string
         }
@@ -21,6 +22,7 @@ export type Database = {
           created_at?: string | null
           end_time: string
           id?: string
+          partner_categories?: string[]
           start_time: string
           user_id: string
         }
@@ -28,6 +30,7 @@ export type Database = {
           created_at?: string | null
           end_time?: string
           id?: string
+          partner_categories?: string[]
           start_time?: string
           user_id?: string
         }

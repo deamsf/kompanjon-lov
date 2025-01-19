@@ -5,9 +5,10 @@ import { TimeSlot } from "./TimeSlot";
 interface TimeGridProps {
   weekDays: Date[];
   timeSlots: string[];
-  selectedTimeSlots: string[];
+  selectedTimeSlots: Map<string, string[]>;
   isDragging: boolean;
   dragStartSlot: string | null;
+  currentDaySlots: Set<string>;
   onTimeSlotMouseDown: (day: Date, time: string) => void;
   onTimeSlotMouseEnter: (day: Date, time: string) => void;
   onTimeSlotMouseUp: (day: Date, time: string) => void;
@@ -19,6 +20,7 @@ export const TimeGrid = ({
   selectedTimeSlots,
   isDragging,
   dragStartSlot,
+  currentDaySlots,
   onTimeSlotMouseDown,
   onTimeSlotMouseEnter,
   onTimeSlotMouseUp,
@@ -32,19 +34,16 @@ export const TimeGrid = ({
           </div>
           {weekDays.map((day) => {
             const slotKey = `${format(day, "yyyy-MM-dd")}-${time}`;
-            const isBeingDragged =
-              isDragging &&
-              dragStartSlot &&
-              ((dragStartSlot <= slotKey && selectedTimeSlots.includes(slotKey)) ||
-                (dragStartSlot >= slotKey && selectedTimeSlots.includes(slotKey)));
+            const isBeingDragged = isDragging && currentDaySlots.has(slotKey);
 
             return (
               <TimeSlot
                 key={`${day}-${time}`}
                 time={time}
                 day={day}
-                isSelected={selectedTimeSlots.includes(slotKey)}
+                isSelected={selectedTimeSlots.has(slotKey)}
                 isBeingDragged={isBeingDragged}
+                categories={selectedTimeSlots.get(slotKey) || []}
                 onMouseDown={() => onTimeSlotMouseDown(day, time)}
                 onMouseEnter={() => onTimeSlotMouseEnter(day, time)}
                 onMouseUp={() => onTimeSlotMouseUp(day, time)}
