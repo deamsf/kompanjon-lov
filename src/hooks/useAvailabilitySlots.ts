@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -16,14 +16,16 @@ export const useAvailabilitySlots = (weekStart: Date) => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        const startOfWeek = format(weekStart, "yyyy-MM-dd");
-        const endOfWeek = format(new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000), "yyyy-MM-dd");
-
+        // Format dates properly for PostgreSQL timestamp
+        const startDate = startOfDay(weekStart);
+        const endDate = endOfDay(new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000));
+        
         const { data, error } = await supabase
           .from("availability_slots")
           .select("*")
-          .gte("start_time", `${startOfWeek}T00:00:00Z`)
-          .lte("start_time", `${endOfWeek}T23:59:59Z`);
+          .gte("start_time", startDate.toISOString())
+          .lte("start_time", endDate.toISOString())
+          .eq("user_id", session.user.id);
 
         if (error) throw error;
 
@@ -37,6 +39,7 @@ export const useAvailabilitySlots = (weekStart: Date) => {
 
         setSelectedTimeSlots(slotsMap);
       } catch (error: any) {
+        console.error("Error fetching availability slots:", error);
         toast.error(error.message || "Failed to fetch availability slots");
       }
     };
