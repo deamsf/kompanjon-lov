@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { format, startOfWeek, isSameDay } from "date-fns";
+import { format, startOfWeek, isSameDay, parseISO } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -113,14 +113,19 @@ const Agenda = () => {
 
       const slotsToSave = Array.from(currentDaySlots).map(slotKey => {
         const [date, time] = slotKey.split("-");
+        const startTime = new Date(`${date}T${time}:00.000Z`);
+        const endTime = new Date(startTime);
+        endTime.setMinutes(endTime.getMinutes() + 29);
+
         return {
           user_id: session.user.id,
-          start_time: `${date}T${time}:00.000Z`,
-          end_time: `${date}T${time}:59.999Z`,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
           partner_categories: selectedCategories
         };
       });
 
+      // Delete existing slots for the selected time range
       const { error: deleteError } = await supabase
         .from("availability_slots")
         .delete()
@@ -129,6 +134,7 @@ const Agenda = () => {
 
       if (deleteError) throw deleteError;
 
+      // Insert new slots
       const { error: insertError } = await supabase
         .from("availability_slots")
         .insert(slotsToSave);
@@ -137,6 +143,7 @@ const Agenda = () => {
 
       toast.success("Availability slots saved successfully");
     } catch (error: any) {
+      console.error("Error saving availability slots:", error);
       toast.error(error.message || "Failed to save availability slots");
     } finally {
       setIsDragging(false);
