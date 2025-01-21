@@ -34,11 +34,18 @@ export const TimeSlot = ({
       onMouseDown={onMouseDown}
       onMouseEnter={onMouseEnter}
       onMouseUp={onMouseUp}
+      role="button"
+      tabIndex={0}
+      aria-label={`Time slot for ${time}`}
     >
       {categories.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {categories.map((category) => (
-            <Badge key={category} variant="outline" className="text-xs">
+            <Badge 
+              key={category} 
+              variant="outline" 
+              className="text-xs bg-primary/5"
+            >
               {category}
             </Badge>
           ))}

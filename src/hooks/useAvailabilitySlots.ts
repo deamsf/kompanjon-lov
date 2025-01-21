@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -7,43 +7,42 @@ export const useAvailabilitySlots = (weekStart: Date) => {
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<Map<string, string[]>>(new Map());
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartSlot, setDragStartSlot] = useState<string | null>(null);
-  const [currentDaySlots, setCurrentDaySlots] = useState<Set<string>>(new Set());
   const [dragStartDay, setDragStartDay] = useState<Date | null>(null);
+  const [currentDaySlots, setCurrentDaySlots] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    fetchSavedSlots();
-  }, [weekStart]);
+    const fetchAvailabilitySlots = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
 
-  const fetchSavedSlots = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error("You must be logged in to view availability slots");
-        return;
+        const startOfWeek = format(weekStart, "yyyy-MM-dd");
+        const endOfWeek = format(new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000), "yyyy-MM-dd");
+
+        const { data, error } = await supabase
+          .from("availability_slots")
+          .select("*")
+          .gte("start_time", `${startOfWeek}T00:00:00Z`)
+          .lte("start_time", `${endOfWeek}T23:59:59Z`);
+
+        if (error) throw error;
+
+        const slotsMap = new Map<string, string[]>();
+        data?.forEach(slot => {
+          const date = format(new Date(slot.start_time), "yyyy-MM-dd");
+          const time = format(new Date(slot.start_time), "HH:mm");
+          const slotKey = `${date}-${time}`;
+          slotsMap.set(slotKey, slot.partner_categories);
+        });
+
+        setSelectedTimeSlots(slotsMap);
+      } catch (error: any) {
+        toast.error(error.message || "Failed to fetch availability slots");
       }
+    };
 
-      const weekEndDate = new Date(weekStart);
-      weekEndDate.setDate(weekEndDate.getDate() + 7);
-      
-      const { data, error } = await supabase
-        .from("availability_slots")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .gte("start_time", format(weekStart, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"))
-        .lt("end_time", format(weekEndDate, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
-
-      if (error) throw error;
-
-      const slotsMap = new Map<string, string[]>();
-      data?.forEach(slot => {
-        const slotKey = `${format(parseISO(slot.start_time), "yyyy-MM-dd")}-${format(parseISO(slot.start_time), "HH:mm")}`;
-        slotsMap.set(slotKey, slot.partner_categories);
-      });
-      setSelectedTimeSlots(slotsMap);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to fetch availability slots");
-    }
-  };
+    fetchAvailabilitySlots();
+  }, [weekStart]);
 
   return {
     selectedTimeSlots,
