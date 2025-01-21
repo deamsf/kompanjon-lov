@@ -19,7 +19,7 @@ export const CategorySelector = ({
           <Badge
             key={category}
             variant={selectedCategories.includes(category) ? "default" : "outline"}
-            className="cursor-pointer"
+            className="cursor-pointer hover:bg-primary/80 transition-colors"
             onClick={() => onToggleCategory(category)}
           >
             {category}
