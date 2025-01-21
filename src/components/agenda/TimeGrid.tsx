@@ -20,7 +20,7 @@ export const TimeGrid = ({
   selectedTimeSlots,
   isDragging,
   dragStartSlot,
-  currentDaySlots,
+  currentDaySlots = new Set<string>(), // Provide default empty Set
   onTimeSlotMouseDown,
   onTimeSlotMouseEnter,
   onTimeSlotMouseUp,
