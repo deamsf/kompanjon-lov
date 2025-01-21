@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
-import { format, addDays, startOfWeek, isSameDay, parseISO } from "date-fns";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { format, startOfWeek, isSameDay } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { TimeGrid } from "@/components/agenda/TimeGrid";
-import { Badge } from "@/components/ui/badge";
+import { CategorySelector } from "@/components/agenda/CategorySelector";
+import { WeekNavigation } from "@/components/agenda/WeekNavigation";
+import { useAvailabilitySlots } from "@/hooks/useAvailabilitySlots";
 
 const partnerCategories = [
   "Frontend Development",
@@ -20,46 +21,20 @@ const Agenda = () => {
     const today = new Date();
     return startOfWeek(today, { weekStartsOn: 1 });
   });
-  const [selectedTimeSlots, setSelectedTimeSlots] = useState<Map<string, string[]>>(new Map());
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStartSlot, setDragStartSlot] = useState<string | null>(null);
-  const [currentDaySlots, setCurrentDaySlots] = useState<Set<string>>(new Set());
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [dragStartDay, setDragStartDay] = useState<Date | null>(null);
-
-  useEffect(() => {
-    fetchSavedSlots();
-  }, [weekStart]);
-
-  const fetchSavedSlots = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error("You must be logged in to view availability slots");
-        return;
-      }
-
-      const weekEndDate = addDays(weekStart, 7);
-      
-      const { data, error } = await supabase
-        .from("availability_slots")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .gte("start_time", format(weekStart, "yyyy-MM-dd'T'00:00:00.000'Z'"))
-        .lt("end_time", format(weekEndDate, "yyyy-MM-dd'T'23:59:59.999'Z'"));
-
-      if (error) throw error;
-
-      const slotsMap = new Map<string, string[]>();
-      data?.forEach(slot => {
-        const slotKey = `${format(parseISO(slot.start_time), "yyyy-MM-dd")}-${format(parseISO(slot.start_time), "HH:mm")}`;
-        slotsMap.set(slotKey, slot.partner_categories);
-      });
-      setSelectedTimeSlots(slotsMap);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to fetch availability slots");
-    }
-  };
+  
+  const {
+    selectedTimeSlots,
+    setSelectedTimeSlots,
+    isDragging,
+    setIsDragging,
+    dragStartSlot,
+    setDragStartSlot,
+    currentDaySlots,
+    setCurrentDaySlots,
+    dragStartDay,
+    setDragStartDay,
+  } = useAvailabilitySlots(weekStart);
 
   const generateTimeSlots = () => {
     const slots = [];
@@ -74,7 +49,9 @@ const Agenda = () => {
   const generateWeekDays = () => {
     const days = [];
     for (let i = 0; i < 7; i++) {
-      days.push(addDays(weekStart, i));
+      const day = new Date(weekStart);
+      day.setDate(weekStart.getDate() + i);
+      days.push(day);
     }
     return days;
   };
@@ -144,7 +121,6 @@ const Agenda = () => {
         };
       });
 
-      // Delete existing slots for the selected time range
       const { error: deleteError } = await supabase
         .from("availability_slots")
         .delete()
@@ -153,7 +129,6 @@ const Agenda = () => {
 
       if (deleteError) throw deleteError;
 
-      // Insert new slots
       const { error: insertError } = await supabase
         .from("availability_slots")
         .insert(slotsToSave);
@@ -183,37 +158,14 @@ const Agenda = () => {
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Agenda</h1>
-        <div className="flex gap-4">
-          <Button
-            onClick={() => setWeekStart(addDays(weekStart, -7))}
-            variant="outline"
-          >
-            Previous Week
-          </Button>
-          <Button
-            onClick={() => setWeekStart(addDays(weekStart, 7))}
-            variant="outline"
-          >
-            Next Week
-          </Button>
-        </div>
+        <WeekNavigation weekStart={weekStart} onWeekChange={setWeekStart} />
       </div>
 
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-2">Partner Categories</h2>
-        <div className="flex flex-wrap gap-2">
-          {partnerCategories.map((category) => (
-            <Badge
-              key={category}
-              variant={selectedCategories.includes(category) ? "default" : "outline"}
-              className="cursor-pointer"
-              onClick={() => toggleCategory(category)}
-            >
-              {category}
-            </Badge>
-          ))}
-        </div>
-      </div>
+      <CategorySelector
+        categories={partnerCategories}
+        selectedCategories={selectedCategories}
+        onToggleCategory={toggleCategory}
+      />
 
       <Card className="p-4">
         <div className="grid grid-cols-8 gap-1">
