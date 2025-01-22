@@ -3,6 +3,10 @@ import { ProtectedRoute } from "./ProtectedRoute";
 import Index from "@/pages/Index";
 import Dashboard from "@/pages/Dashboard";
 import Files from "@/pages/Files";
+import Documents from "@/pages/Documents";
+import Bills from "@/pages/Bills";
+import Offers from "@/pages/Offers";
+import Photos from "@/pages/Photos";
 import Agenda from "@/pages/Agenda";
 import Planning from "@/pages/Planning";
 import Todo from "@/pages/Todo";
@@ -16,6 +20,10 @@ export const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<Index />} />
       <Route
+        path="/"
+        element={<Navigate to="/dashboard" replace />}
+      />
+      <Route
         path="/dashboard"
         element={
           <ProtectedRoute>
@@ -24,10 +32,34 @@ export const AppRoutes = () => {
         }
       />
       <Route
-        path="/files"
+        path="/documents"
         element={
           <ProtectedRoute>
-            <Files />
+            <Documents />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/bills"
+        element={
+          <ProtectedRoute>
+            <Bills />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/offers"
+        element={
+          <ProtectedRoute>
+            <Offers />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/photos"
+        element={
+          <ProtectedRoute>
+            <Photos />
           </ProtectedRoute>
         }
       />
@@ -56,7 +88,7 @@ export const AppRoutes = () => {
         }
       />
       <Route
-        path="/communication"
+        path="/templates"
         element={
           <ProtectedRoute>
             <Communication />
@@ -64,7 +96,7 @@ export const AppRoutes = () => {
         }
       />
       <Route
-        path="/partners"
+        path="/team"
         element={
           <ProtectedRoute>
             <Partners />
