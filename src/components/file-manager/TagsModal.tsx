@@ -29,6 +29,10 @@ export const TagsModal = ({ fileIds, isOpen, onClose, onSuccess }: TagsModalProp
 
     setIsUpdating(true);
     try {
+      // Get the current user's ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No authenticated user");
+
       // First, ensure all tags exist
       const { data: existingTags, error: tagsError } = await supabase
         .from('tags')
@@ -37,19 +41,24 @@ export const TagsModal = ({ fileIds, isOpen, onClose, onSuccess }: TagsModalProp
 
       if (tagsError) throw tagsError;
 
-      const existingTagNames = existingTags.map(t => t.name);
+      const existingTagNames = existingTags?.map(t => t.name) || [];
       const newTags = tags.filter(t => !existingTagNames.includes(t));
 
       // Create new tags
-      let allTagIds = [...existingTags];
+      let allTagIds = [...(existingTags || [])];
       if (newTags.length > 0) {
         const { data: createdTags, error: createError } = await supabase
           .from('tags')
-          .insert(newTags.map(name => ({ name })))
+          .insert(newTags.map(name => ({ 
+            name,
+            created_by: user.id 
+          })))
           .select();
 
         if (createError) throw createError;
-        allTagIds = [...allTagIds, ...createdTags];
+        if (createdTags) {
+          allTagIds = [...allTagIds, ...createdTags];
+        }
       }
 
       // Create file_tags associations
@@ -76,7 +85,7 @@ export const TagsModal = ({ fileIds, isOpen, onClose, onSuccess }: TagsModalProp
       console.error('Tag update error:', error);
       toast({
         title: "Error",
-        description: "Failed to update tags",
+        description: error.message || "Failed to update tags",
         variant: "destructive",
       });
     } finally {
