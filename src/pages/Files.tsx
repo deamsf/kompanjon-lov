@@ -3,10 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ShareModal } from "@/components/file-manager/ShareModal";
-import { FileSidebar } from "@/components/file-manager/FileSidebar";
 import { FileActions } from "@/components/file-manager/FileActions";
 import { FileContainer } from "@/components/file-manager/FileContainer";
 import { FileItem } from "@/types/files";
+import { Button } from "@/components/ui/button";
+import { Share, Tag, Trash } from "lucide-react";
 
 const Files = () => {
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
@@ -15,7 +16,6 @@ const Files = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [selectedFileForShare, setSelectedFileForShare] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { data: files = [], isLoading, refetch } = useQuery({
@@ -63,15 +63,6 @@ const Files = () => {
     }
   });
 
-  const handleSort = (field: 'name' | 'size' | 'type') => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
-  };
-
   const handleFileSelect = (fileId: string) => {
     setSelectedFiles(prev => 
       prev.includes(fileId) 
@@ -80,50 +71,109 @@ const Files = () => {
     );
   };
 
-  const handleShare = (fileId: string) => {
-    setSelectedFileForShare(fileId);
+  const handleBulkShare = () => {
+    if (selectedFiles.length === 0) {
+      toast({
+        title: "No files selected",
+        description: "Please select at least one file to share",
+        variant: "destructive",
+      });
+      return;
+    }
     setShareModalOpen(true);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedFiles.length === 0) {
+      toast({
+        title: "No files selected",
+        description: "Please select at least one file to delete",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('files')
+        .delete()
+        .in('id', selectedFiles);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Files deleted successfully",
+      });
+      
+      refetch();
+      setSelectedFiles([]);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete files",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Files</h1>
-        <FileActions
-          onUploadComplete={() => refetch()}
+        <div className="flex gap-2">
+          {selectedFiles.length > 0 && (
+            <>
+              <Button
+                variant="outline"
+                onClick={handleBulkShare}
+              >
+                <Share className="w-4 h-4 mr-2" />
+                Share Selected
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setTagModalOpen(true)}
+              >
+                <Tag className="w-4 h-4 mr-2" />
+                Add Tags
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleBulkDelete}
+              >
+                <Trash className="w-4 h-4 mr-2" />
+                Delete Selected
+              </Button>
+            </>
+          )}
+          <FileActions
+            onUploadComplete={() => refetch()}
+            selectedTags={selectedTags}
+          />
+        </div>
+      </div>
+
+      <div className="w-full">
+        <FileContainer
+          files={files}
+          isLoading={isLoading}
+          selectedFiles={selectedFiles}
+          searchTerm={searchTerm}
+          onSearch={setSearchTerm}
+          onFileSelect={handleFileSelect}
+          onSort={handleSort}
           selectedTags={selectedTags}
+          onTagsChange={setSelectedTags}
         />
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-3">
-          <FileSidebar
-            selectedTags={selectedTags}
-            onTagsChange={setSelectedTags}
-          />
-        </div>
-
-        <div className="col-span-9">
-          <FileContainer
-            files={files}
-            isLoading={isLoading}
-            selectedFiles={selectedFiles}
-            searchTerm={searchTerm}
-            onSearch={setSearchTerm}
-            onFileSelect={handleFileSelect}
-            onShare={handleShare}
-            onSort={handleSort}
-          />
-        </div>
-      </div>
-
-      {selectedFileForShare && (
+      {shareModalOpen && (
         <ShareModal
-          fileId={selectedFileForShare}
+          fileIds={selectedFiles}
           isOpen={shareModalOpen}
           onClose={() => {
             setShareModalOpen(false);
-            setSelectedFileForShare(null);
           }}
         />
       )}

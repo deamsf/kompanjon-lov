@@ -5,18 +5,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Lock } from "lucide-react";
+import { Lock, Copy, ExternalLink } from "lucide-react";
 
 interface ShareModalProps {
-  fileId: string;
+  fileIds: string[];
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const ShareModal = ({ fileId, isOpen, onClose }: ShareModalProps) => {
+export const ShareModal = ({ fileIds, isOpen, onClose }: ShareModalProps) => {
   const [password, setPassword] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [shareLink, setShareLink] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleShare = async () => {
@@ -44,7 +45,7 @@ export const ShareModal = ({ fileId, isOpen, onClose }: ShareModalProps) => {
       const { data, error } = await supabase
         .from('shares')
         .insert({
-          file_id: fileId,
+          file_ids: fileIds,
           access_password: password,
           expires_at: expiresAt || null,
           created_by: user.id,
@@ -54,11 +55,13 @@ export const ShareModal = ({ fileId, isOpen, onClose }: ShareModalProps) => {
 
       if (error) throw error;
 
+      const shareUrl = `${window.location.origin}/shared/${data.id}`;
+      setShareLink(shareUrl);
+
       toast({
         title: "Success",
         description: "Share link created successfully",
       });
-      onClose();
     } catch (error) {
       console.error('Share creation error:', error);
       toast({
@@ -71,11 +74,21 @@ export const ShareModal = ({ fileId, isOpen, onClose }: ShareModalProps) => {
     }
   };
 
+  const handleCopyLink = async () => {
+    if (shareLink) {
+      await navigator.clipboard.writeText(shareLink);
+      toast({
+        title: "Success",
+        description: "Share link copied to clipboard",
+      });
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Share File</DialogTitle>
+          <DialogTitle>Share Files</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
@@ -97,15 +110,45 @@ export const ShareModal = ({ fileId, isOpen, onClose }: ShareModalProps) => {
               onChange={(e) => setExpiresAt(e.target.value)}
             />
           </div>
+          {shareLink && (
+            <div className="space-y-2">
+              <Label>Share Link</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={shareLink}
+                  readOnly
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleCopyLink}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  asChild
+                >
+                  <a href={shareLink} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleShare} disabled={isCreating}>
-            <Lock className="w-4 h-4 mr-2" />
-            {isCreating ? "Creating..." : "Create Share Link"}
-          </Button>
+          {!shareLink && (
+            <Button onClick={handleShare} disabled={isCreating}>
+              <Lock className="w-4 h-4 mr-2" />
+              {isCreating ? "Creating..." : "Create Share Link"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

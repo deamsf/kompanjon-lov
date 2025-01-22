@@ -2,15 +2,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FileSearch } from "./FileSearch";
 import { FileList } from "./FileList";
 import { FileItem } from "@/types/files";
+import { TagsInput } from "./TagsInput";
 
 interface FileContainerProps {
   files: FileItem[];
   isLoading: boolean;
   selectedFiles: string[];
   searchTerm: string;
+  selectedTags: string[];
   onSearch: (term: string) => void;
   onFileSelect: (fileId: string) => void;
-  onShare: (fileId: string) => void;
+  onTagsChange: (tags: string[]) => void;
   onSort: (field: 'name' | 'size' | 'type') => void;
 }
 
@@ -19,9 +21,10 @@ export const FileContainer = ({
   isLoading,
   selectedFiles,
   searchTerm,
+  selectedTags,
   onSearch,
   onFileSelect,
-  onShare,
+  onTagsChange,
   onSort,
 }: FileContainerProps) => {
   return (
@@ -32,13 +35,18 @@ export const FileContainer = ({
             searchTerm={searchTerm}
             onSearch={onSearch}
           />
+          <TagsInput
+            value={selectedTags}
+            onChange={onTagsChange}
+            placeholder="Filter by tags..."
+            className="flex-1"
+          />
         </div>
         <FileList
           files={files}
           isLoading={isLoading}
           selectedFiles={selectedFiles}
           onFileSelect={onFileSelect}
-          onShare={onShare}
           onSort={onSort}
         />
       </CardContent>
