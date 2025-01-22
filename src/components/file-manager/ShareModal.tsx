@@ -42,10 +42,10 @@ export const ShareModal = ({ fileIds, isOpen, onClose }: ShareModalProps) => {
 
     setIsCreating(true);
     try {
-      const { data, error } = await supabase
+      // First create the share record
+      const { data: shareData, error: shareError } = await supabase
         .from('shares')
         .insert({
-          file_ids: fileIds,
           access_password: password,
           expires_at: expiresAt || null,
           created_by: user.id,
@@ -53,20 +53,32 @@ export const ShareModal = ({ fileIds, isOpen, onClose }: ShareModalProps) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (shareError) throw shareError;
 
-      const shareUrl = `${window.location.origin}/shared/${data.id}`;
+      // Then create the share_files associations
+      const shareFileRecords = fileIds.map(fileId => ({
+        share_id: shareData.id,
+        file_id: fileId
+      }));
+
+      const { error: shareFilesError } = await supabase
+        .from('share_files')
+        .insert(shareFileRecords);
+
+      if (shareFilesError) throw shareFilesError;
+
+      const shareUrl = `${window.location.origin}/shared/${shareData.id}`;
       setShareLink(shareUrl);
 
       toast({
         title: "Success",
         description: "Share link created successfully",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Share creation error:', error);
       toast({
         title: "Error",
-        description: "Failed to create share link",
+        description: error.message || "Failed to create share link",
         variant: "destructive",
       });
     } finally {
