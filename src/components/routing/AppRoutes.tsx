@@ -14,6 +14,7 @@ import Communication from "@/pages/Communication";
 import Partners from "@/pages/Partners";
 import Advice from "@/pages/Advice";
 import Preferences from "@/pages/Preferences";
+import ProjectSettings from "@/pages/ProjectSettings";
 
 export const AppRoutes = () => {
   return (
@@ -116,6 +117,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Preferences />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/project-settings"
+        element={
+          <ProtectedRoute>
+            <ProjectSettings />
           </ProtectedRoute>
         }
       />

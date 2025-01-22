@@ -9,6 +9,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -20,9 +23,17 @@ import {
   AlertOctagon,
   Settings,
   LogOut,
-  Home,
   MapPin,
   Phone,
+  Construction,
+  Calendar,
+  ListTodo,
+  ClipboardList,
+  FileText,
+  Receipt,
+  FileCheck,
+  Camera,
+  SwitchCamera,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -75,12 +86,20 @@ export function AppSidebar() {
       <SidebarContent>
         {/* Logo Section */}
         <div className="px-6 py-4 border-b">
-          <h1 className="text-2xl font-bold text-primary">Kompanjon</h1>
+          <div className="flex items-center gap-2">
+            <Construction className="h-6 w-6 text-primary" />
+            <h1 className="text-2xl font-bold text-primary">Kompanjon</h1>
+          </div>
         </div>
 
         {/* Project Info Section */}
         <div className="px-6 py-4 border-b bg-muted/50">
-          <h2 className="text-lg font-semibold mb-2">{projectData.name}</h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold">{projectData.name}</h2>
+            <button className="text-muted-foreground hover:text-primary">
+              <SwitchCamera className="h-4 w-4" />
+            </button>
+          </div>
           <div className="space-y-2 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4" />
@@ -112,10 +131,30 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => navigate('/agenda')}>
+                <SidebarMenuButton>
                   <Building2 className="h-4 w-4" />
                   <span>Organization</span>
                 </SidebarMenuButton>
+                <SidebarMenuSub>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton onClick={() => navigate('/agenda')}>
+                      <Calendar className="h-4 w-4" />
+                      <span>Agenda</span>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton onClick={() => navigate('/todo')}>
+                      <ListTodo className="h-4 w-4" />
+                      <span>To Do</span>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton onClick={() => navigate('/planning')}>
+                      <ClipboardList className="h-4 w-4" />
+                      <span>Planning</span>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
@@ -126,10 +165,36 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => navigate('/documents')}>
+                <SidebarMenuButton>
                   <FolderKanban className="h-4 w-4" />
                   <span>Resources</span>
                 </SidebarMenuButton>
+                <SidebarMenuSub>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton onClick={() => navigate('/documents')}>
+                      <FileText className="h-4 w-4" />
+                      <span>Documents</span>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton onClick={() => navigate('/bills')}>
+                      <Receipt className="h-4 w-4" />
+                      <span>Bills</span>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton onClick={() => navigate('/offers')}>
+                      <FileCheck className="h-4 w-4" />
+                      <span>Offers</span>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton onClick={() => navigate('/photos')}>
+                      <Camera className="h-4 w-4" />
+                      <span>Photos</span>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton onClick={() => navigate('/team')}>
@@ -170,6 +235,10 @@ export function AppSidebar() {
               </span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuItem onClick={() => navigate("/project-settings")}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Project Settings</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/preferences")}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Preferences</span>
