@@ -8,6 +8,7 @@ import { FileContainer } from "@/components/file-manager/FileContainer";
 import { FileItem } from "@/types/files";
 import { Button } from "@/components/ui/button";
 import { Share, Tag, Trash } from "lucide-react";
+import { TagsModal } from "@/components/file-manager/TagsModal";
 
 const Files = () => {
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
@@ -16,6 +17,7 @@ const Files = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [tagsModalOpen, setTagsModalOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: files = [], isLoading, refetch } = useQuery({
@@ -92,6 +94,18 @@ const Files = () => {
     setShareModalOpen(true);
   };
 
+  const handleBulkTags = () => {
+    if (selectedFiles.length === 0) {
+      toast({
+        title: "No files selected",
+        description: "Please select at least one file to add tags",
+        variant: "destructive",
+      });
+      return;
+    }
+    setTagsModalOpen(true);
+  };
+
   const handleBulkDelete = async () => {
     if (selectedFiles.length === 0) {
       toast({
@@ -142,6 +156,13 @@ const Files = () => {
               </Button>
               <Button
                 variant="outline"
+                onClick={handleBulkTags}
+              >
+                <Tag className="w-4 h-4 mr-2" />
+                Add Tags
+              </Button>
+              <Button
+                variant="outline"
                 onClick={handleBulkDelete}
               >
                 <Trash className="w-4 h-4 mr-2" />
@@ -177,6 +198,21 @@ const Files = () => {
           isOpen={shareModalOpen}
           onClose={() => {
             setShareModalOpen(false);
+            setSelectedFiles([]);
+          }}
+        />
+      )}
+
+      {tagsModalOpen && (
+        <TagsModal
+          fileIds={selectedFiles}
+          isOpen={tagsModalOpen}
+          onClose={() => {
+            setTagsModalOpen(false);
+            setSelectedFiles([]);
+          }}
+          onSuccess={() => {
+            refetch();
           }}
         />
       )}

@@ -2,8 +2,10 @@ import { TableRow, TableCell } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Share } from "lucide-react";
+import { Edit, Trash } from "lucide-react";
 import { FileItem } from "@/types/files";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FileTableContentProps {
   files: FileItem[];
@@ -30,8 +32,71 @@ export const FileTableContent = ({
   isLoading,
   selectedFiles,
   onFileSelect,
-  onShare,
 }: FileTableContentProps) => {
+  const { toast } = useToast();
+
+  const handleDelete = async (fileId: string) => {
+    try {
+      const { error } = await supabase
+        .from('files')
+        .delete()
+        .eq('id', fileId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "File deleted successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEdit = async (fileId: string) => {
+    // Trigger file input click
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('No active session');
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('fileId', fileId);
+
+        const { data, error } = await supabase.functions.invoke('update-file', {
+          body: formData,
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "File updated successfully",
+        });
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to update file",
+          variant: "destructive",
+        });
+      }
+    };
+    input.click();
+  };
+
   if (isLoading) {
     return (
       <TableRow>
@@ -84,9 +149,16 @@ export const FileTableContent = ({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => onShare(file.id)}
+                onClick={() => handleEdit(file.id)}
               >
-                <Share className="w-4 h-4" />
+                <Edit className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDelete(file.id)}
+              >
+                <Trash className="w-4 h-4" />
               </Button>
             </div>
           </TableCell>

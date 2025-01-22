@@ -259,13 +259,42 @@ export type Database = {
         }
         Relationships: []
       }
+      share_files: {
+        Row: {
+          file_id: string
+          share_id: string
+        }
+        Insert: {
+          file_id: string
+          share_id: string
+        }
+        Update: {
+          file_id?: string
+          share_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "share_files_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "share_files_share_id_fkey"
+            columns: ["share_id"]
+            isOneToOne: false
+            referencedRelation: "shares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shares: {
         Row: {
           access_password: string
           created_at: string | null
           created_by: string
           expires_at: string | null
-          file_id: string | null
           id: string
         }
         Insert: {
@@ -273,7 +302,6 @@ export type Database = {
           created_at?: string | null
           created_by: string
           expires_at?: string | null
-          file_id?: string | null
           id?: string
         }
         Update: {
@@ -281,18 +309,9 @@ export type Database = {
           created_at?: string | null
           created_by?: string
           expires_at?: string | null
-          file_id?: string | null
           id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "shares_file_id_fkey"
-            columns: ["file_id"]
-            isOneToOne: false
-            referencedRelation: "files"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       tags: {
         Row: {
