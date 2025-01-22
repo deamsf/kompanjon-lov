@@ -1,15 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 
-interface TagsInputProps {
+export interface TagsInputProps {
   value: string[];
   onChange: (tags: string[]) => void;
   placeholder?: string;
+  className?: string;
 }
 
-export const TagsInput = ({ value = [], onChange, placeholder = "Add tags..." }: TagsInputProps) => {
+export const TagsInput = ({ value = [], onChange, placeholder = "Add tags...", className }: TagsInputProps) => {
   const [inputValue, setInputValue] = useState("");
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -30,7 +31,7 @@ export const TagsInput = ({ value = [], onChange, placeholder = "Add tags..." }:
   };
 
   return (
-    <div className="flex flex-wrap gap-2 p-2 border rounded-md">
+    <div className={`flex flex-wrap gap-2 p-2 border rounded-md ${className}`}>
       {value.map((tag) => (
         <Badge key={tag} variant="secondary" className="gap-1">
           {tag}

@@ -71,6 +71,15 @@ const Files = () => {
     );
   };
 
+  const handleSort = (field: 'name' | 'size' | 'type') => {
+    if (field === sortField) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   const handleBulkShare = () => {
     if (selectedFiles.length === 0) {
       toast({
@@ -133,13 +142,6 @@ const Files = () => {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => setTagModalOpen(true)}
-              >
-                <Tag className="w-4 h-4 mr-2" />
-                Add Tags
-              </Button>
-              <Button
-                variant="outline"
                 onClick={handleBulkDelete}
               >
                 <Trash className="w-4 h-4 mr-2" />
@@ -165,6 +167,7 @@ const Files = () => {
           onSort={handleSort}
           selectedTags={selectedTags}
           onTagsChange={setSelectedTags}
+          onShare={() => setShareModalOpen(true)}
         />
       </div>
 

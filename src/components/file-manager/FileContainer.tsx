@@ -14,6 +14,7 @@ interface FileContainerProps {
   onFileSelect: (fileId: string) => void;
   onTagsChange: (tags: string[]) => void;
   onSort: (field: 'name' | 'size' | 'type') => void;
+  onShare: (fileId: string) => void;
 }
 
 export const FileContainer = ({
@@ -26,6 +27,7 @@ export const FileContainer = ({
   onFileSelect,
   onTagsChange,
   onSort,
+  onShare,
 }: FileContainerProps) => {
   return (
     <Card>
@@ -48,6 +50,7 @@ export const FileContainer = ({
           selectedFiles={selectedFiles}
           onFileSelect={onFileSelect}
           onSort={onSort}
+          onShare={onShare}
         />
       </CardContent>
     </Card>
