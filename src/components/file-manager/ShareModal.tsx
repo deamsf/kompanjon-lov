@@ -1,36 +1,36 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Lock, Copy, ExternalLink } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 interface ShareModalProps {
-  fileIds: string[];
   isOpen: boolean;
   onClose: () => void;
+  fileIds: string[];
 }
 
-export const ShareModal = ({ fileIds, isOpen, onClose }: ShareModalProps) => {
+export const ShareModal = ({ isOpen, onClose, fileIds }: ShareModalProps) => {
   const [password, setPassword] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [shareLink, setShareLink] = useState("");
   const { toast } = useToast();
 
-  const handleShare = async () => {
-    if (!password) {
-      toast({
-        title: "Error",
-        description: "Password is required",
-        variant: "destructive",
-      });
-      return;
-    }
+  const { data: sessionData } = useQuery({
+    queryKey: ['session'],
+    queryFn: async () => {
+      const { data } = await supabase.auth.getSession();
+      return data.session;
+    },
+  });
 
-    const { data: { user } } = await supabase.auth.getUser();
+  const user = sessionData?.user;
+
+  const handleCreateShare = async () => {
     if (!user) {
       toast({
         title: "Error",
@@ -67,7 +67,8 @@ export const ShareModal = ({ fileIds, isOpen, onClose }: ShareModalProps) => {
 
       if (shareFilesError) throw shareFilesError;
 
-      const shareUrl = `${window.location.origin}/shared/${shareData.id}`;
+      // Construct the share URL using window.location.origin without extra colons
+      const shareUrl = new URL(`/shared/${shareData.id}`, window.location.origin).toString();
       setShareLink(shareUrl);
 
       toast({
@@ -86,35 +87,33 @@ export const ShareModal = ({ fileIds, isOpen, onClose }: ShareModalProps) => {
     }
   };
 
-  const handleCopyLink = async () => {
-    if (shareLink) {
-      await navigator.clipboard.writeText(shareLink);
-      toast({
-        title: "Success",
-        description: "Share link copied to clipboard",
-      });
-    }
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(shareLink);
+    toast({
+      title: "Success",
+      description: "Share link copied to clipboard",
+    });
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Share Files</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="password">Password Protection</Label>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="password">Password (optional)</Label>
             <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
+              placeholder="Enter a password"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="expires">Expires At (Optional)</Label>
+          <div>
+            <Label htmlFor="expires">Expires at (optional)</Label>
             <Input
               id="expires"
               type="datetime-local"
@@ -122,46 +121,23 @@ export const ShareModal = ({ fileIds, isOpen, onClose }: ShareModalProps) => {
               onChange={(e) => setExpiresAt(e.target.value)}
             />
           </div>
-          {shareLink && (
+          {shareLink ? (
             <div className="space-y-2">
-              <Label>Share Link</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={shareLink}
-                  readOnly
-                  className="flex-1"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleCopyLink}
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  asChild
-                >
-                  <a href={shareLink} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                </Button>
-              </div>
+              <Input value={shareLink} readOnly />
+              <Button onClick={handleCopyLink} className="w-full">
+                Copy Link
+              </Button>
             </div>
-          )}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          {!shareLink && (
-            <Button onClick={handleShare} disabled={isCreating}>
-              <Lock className="w-4 h-4 mr-2" />
+          ) : (
+            <Button
+              onClick={handleCreateShare}
+              disabled={isCreating}
+              className="w-full"
+            >
               {isCreating ? "Creating..." : "Create Share Link"}
             </Button>
           )}
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
