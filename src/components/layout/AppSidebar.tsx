@@ -40,11 +40,6 @@ export function AppSidebar() {
   const [userId, setUserId] = useState<string | null>(null);
   const [openMenus, setOpenMenus] = useState<string[]>([]);
 
-  // Hide sidebar on login page
-  if (location.pathname === "/") {
-    return null;
-  }
-
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -72,6 +67,11 @@ export function AppSidebar() {
   };
 
   const isSubmenuOpen = (menuName: string) => openMenus.includes(menuName);
+
+  // Move the conditional return after all hooks are defined
+  if (location.pathname === "/") {
+    return null;
+  }
 
   return (
     <Sidebar>
