@@ -2,33 +2,23 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
+  SidebarFooter,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
+  SidebarMenuGroup,
   SidebarMenuSub,
   SidebarMenuSubItem,
-  SidebarMenuSubButton,
+  SidebarMenuSubTrigger,
 } from "@/components/ui/sidebar";
-import { Badge } from "@/components/ui/badge";
 import {
-  LayoutDashboard,
   Building2,
   FolderKanban,
+  LayoutDashboard,
   Users,
-  Mail,
-  AlertOctagon,
-  Settings,
+  MessageSquare,
+  HelpCircle,
   LogOut,
-  MapPin,
-  Phone,
-  Construction,
-  Calendar,
-  ListTodo,
-  ClipboardList,
   FileText,
   Receipt,
   FileCheck,
@@ -36,6 +26,8 @@ import {
   SwitchCamera,
   ChevronDown,
   ChevronRight,
+  Construction,
+  Settings,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -44,14 +36,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [userId, setUserId] = useState<string | null>(null);
+  const [openMenus, setOpenMenus] = useState<string[]>([]);
 
   // Hide sidebar on login page
   if (location.pathname === "/") {
@@ -60,206 +53,142 @@ export function AppSidebar() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setUserId(session.user.id);
+      if (session) {
+        setUserId(session.user.id);
+      }
     });
   }, []);
 
-  const { data: profile } = useQuery({
-    queryKey: ['profile', userId],
-    queryFn: async () => {
-      if (!userId) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!userId,
-  });
-
-  const displayName = profile?.first_name || 'User';
-
-  // Mock project data - this would come from your project management system
-  const projectData = {
-    name: "123 Main Street Renovation",
-    address: "123 Main Street, Springfield, IL",
-    phone: "(555) 123-4567",
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate("/");
+      toast.success("Signed out successfully");
+    } catch (error) {
+      toast.error("Error signing out");
+    }
   };
+
+  const toggleSubmenu = (menuName: string) => {
+    setOpenMenus(prev => 
+      prev.includes(menuName) 
+        ? prev.filter(name => name !== menuName)
+        : [...prev, menuName]
+    );
+  };
+
+  const isSubmenuOpen = (menuName: string) => openMenus.includes(menuName);
 
   return (
     <Sidebar>
+      <SidebarHeader className="border-b p-4">
+        <div className="flex items-center space-x-2">
+          <Construction className="h-6 w-6" />
+          <span className="text-lg font-semibold">Kompanjon</span>
+        </div>
+      </SidebarHeader>
       <SidebarContent>
-        {/* Logo Section */}
-        <div className="px-6 py-4 border-b">
-          <div className="flex items-center gap-2">
-            <Construction className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold text-primary">Kompanjon</h1>
-          </div>
-        </div>
+        <SidebarMenu>
+          <SidebarMenuGroup>
+            <SidebarMenuButton onClick={() => navigate("/dashboard")}>
+              <LayoutDashboard className="h-4 w-4" />
+              <span>Dashboard</span>
+            </SidebarMenuButton>
 
-        {/* Project Info Section */}
-        <div className="px-6 py-4 border-b bg-muted/50">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold">{projectData.name}</h2>
-            <button className="text-muted-foreground hover:text-primary">
-              <SwitchCamera className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              <span>{projectData.address}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              <span>{projectData.phone}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Navigation */}
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => navigate('/dashboard')}>
-                  <LayoutDashboard className="h-4 w-4" />
-                  <span>Dashboard</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Organization</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton>
-                  <Building2 className="h-4 w-4" />
-                  <span>Organization</span>
+            <div>
+              <SidebarMenuButton onClick={() => toggleSubmenu("organization")}>
+                <Building2 className="h-4 w-4" />
+                <span>Organization</span>
+                {isSubmenuOpen("organization") ? (
                   <ChevronDown className="ml-auto h-4 w-4" />
-                </SidebarMenuButton>
+                ) : (
+                  <ChevronRight className="ml-auto h-4 w-4" />
+                )}
+              </SidebarMenuButton>
+              {isSubmenuOpen("organization") && (
                 <SidebarMenuSub>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton onClick={() => navigate('/agenda')}>
-                      <Calendar className="h-4 w-4" />
-                      <span>Agenda</span>
-                    </SidebarMenuSubButton>
+                  <SidebarMenuSubItem onClick={() => navigate("/agenda")}>
+                    Agenda
                   </SidebarMenuSubItem>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton onClick={() => navigate('/todo')}>
-                      <ListTodo className="h-4 w-4" />
-                      <span>To Do</span>
-                    </SidebarMenuSubButton>
+                  <SidebarMenuSubItem onClick={() => navigate("/todo")}>
+                    To Do
                   </SidebarMenuSubItem>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton onClick={() => navigate('/planning')}>
-                      <ClipboardList className="h-4 w-4" />
-                      <span>Planning</span>
-                    </SidebarMenuSubButton>
+                  <SidebarMenuSubItem onClick={() => navigate("/planning")}>
+                    Planning
                   </SidebarMenuSubItem>
                 </SidebarMenuSub>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+              )}
+            </div>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Project</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton>
-                  <FolderKanban className="h-4 w-4" />
-                  <span>Resources</span>
+            <div>
+              <SidebarMenuButton onClick={() => toggleSubmenu("resources")}>
+                <FolderKanban className="h-4 w-4" />
+                <span>Resources</span>
+                {isSubmenuOpen("resources") ? (
                   <ChevronDown className="ml-auto h-4 w-4" />
-                </SidebarMenuButton>
+                ) : (
+                  <ChevronRight className="ml-auto h-4 w-4" />
+                )}
+              </SidebarMenuButton>
+              {isSubmenuOpen("resources") && (
                 <SidebarMenuSub>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton onClick={() => navigate('/documents')}>
-                      <FileText className="h-4 w-4" />
-                      <span>Documents</span>
-                    </SidebarMenuSubButton>
+                  <SidebarMenuSubItem onClick={() => navigate("/documents")}>
+                    Documents
                   </SidebarMenuSubItem>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton onClick={() => navigate('/bills')}>
-                      <Receipt className="h-4 w-4" />
-                      <span>Bills</span>
-                    </SidebarMenuSubButton>
+                  <SidebarMenuSubItem onClick={() => navigate("/bills")}>
+                    Bills
                   </SidebarMenuSubItem>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton onClick={() => navigate('/offers')}>
-                      <FileCheck className="h-4 w-4" />
-                      <span>Offers</span>
-                    </SidebarMenuSubButton>
+                  <SidebarMenuSubItem onClick={() => navigate("/offers")}>
+                    Offers
                   </SidebarMenuSubItem>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton onClick={() => navigate('/photos')}>
-                      <Camera className="h-4 w-4" />
-                      <span>Photos</span>
-                    </SidebarMenuSubButton>
+                  <SidebarMenuSubItem onClick={() => navigate("/photos")}>
+                    Photos
                   </SidebarMenuSubItem>
                 </SidebarMenuSub>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => navigate('/team')}>
-                  <Users className="h-4 w-4" />
-                  <span>Team</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => navigate('/templates')}>
-                  <Mail className="h-4 w-4" />
-                  <span>Templates</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => navigate('/advice')}>
-                  <AlertOctagon className="h-4 w-4" />
-                  <span>Advice</span>
-                  <Badge variant="secondary" className="ml-2">Beta</Badge>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+              )}
+            </div>
+
+            <SidebarMenuButton onClick={() => navigate("/partners")}>
+              <Users className="h-4 w-4" />
+              <span>Team</span>
+            </SidebarMenuButton>
+
+            <SidebarMenuButton onClick={() => navigate("/communication")}>
+              <MessageSquare className="h-4 w-4" />
+              <span>Templates</span>
+            </SidebarMenuButton>
+
+            <SidebarMenuButton onClick={() => navigate("/advice")}>
+              <HelpCircle className="h-4 w-4" />
+              <span>Advice</span>
+            </SidebarMenuButton>
+
+            <SidebarMenuButton onClick={() => navigate("/project-settings")}>
+              <Settings className="h-4 w-4" />
+              <span>Project Settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuGroup>
+        </SidebarMenu>
       </SidebarContent>
 
-      <SidebarFooter className="border-t">
-        <div className="p-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-2 w-full">
+      <SidebarFooter className="border-t p-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center space-x-2">
               <Avatar>
-                <AvatarImage src="/placeholder.svg" />
-                <AvatarFallback>
-                  {displayName[0]?.toUpperCase() || 'U'}
-                </AvatarFallback>
+                <AvatarImage src="" />
+                <AvatarFallback>U</AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium">
-                Welcome, {displayName}
-              </span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              <DropdownMenuItem onClick={() => navigate("/project-settings")}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Project Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/preferences")}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Preferences</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => supabase.auth.signOut().then(() => navigate("/"))}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Sign out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+              <span>User</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Sign Out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarFooter>
     </Sidebar>
   );
