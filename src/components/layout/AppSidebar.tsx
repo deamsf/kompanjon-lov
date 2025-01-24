@@ -6,10 +6,9 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
-  SidebarMenuGroup,
+  SidebarGroup,
   SidebarMenuSub,
   SidebarMenuSubItem,
-  SidebarMenuSubTrigger,
 } from "@/components/ui/sidebar";
 import {
   Building2,
@@ -19,11 +18,6 @@ import {
   MessageSquare,
   HelpCircle,
   LogOut,
-  FileText,
-  Receipt,
-  FileCheck,
-  Camera,
-  SwitchCamera,
   ChevronDown,
   ChevronRight,
   Construction,
@@ -89,7 +83,7 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          <SidebarMenuGroup>
+          <SidebarGroup>
             <SidebarMenuButton onClick={() => navigate("/dashboard")}>
               <LayoutDashboard className="h-4 w-4" />
               <span>Dashboard</span>
@@ -167,7 +161,7 @@ export function AppSidebar() {
               <Settings className="h-4 w-4" />
               <span>Project Settings</span>
             </SidebarMenuButton>
-          </SidebarMenuGroup>
+          </SidebarGroup>
         </SidebarMenu>
       </SidebarContent>
 
