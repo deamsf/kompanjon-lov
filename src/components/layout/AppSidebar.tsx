@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -34,6 +34,8 @@ import {
   FileCheck,
   Camera,
   SwitchCamera,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -48,7 +50,13 @@ import { useState, useEffect } from "react";
 
 export function AppSidebar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [userId, setUserId] = useState<string | null>(null);
+
+  // Hide sidebar on login page
+  if (location.pathname === "/") {
+    return null;
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -134,6 +142,7 @@ export function AppSidebar() {
                 <SidebarMenuButton>
                   <Building2 className="h-4 w-4" />
                   <span>Organization</span>
+                  <ChevronDown className="ml-auto h-4 w-4" />
                 </SidebarMenuButton>
                 <SidebarMenuSub>
                   <SidebarMenuSubItem>
@@ -168,6 +177,7 @@ export function AppSidebar() {
                 <SidebarMenuButton>
                   <FolderKanban className="h-4 w-4" />
                   <span>Resources</span>
+                  <ChevronDown className="ml-auto h-4 w-4" />
                 </SidebarMenuButton>
                 <SidebarMenuSub>
                   <SidebarMenuSubItem>
