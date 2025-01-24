@@ -23,8 +23,8 @@ import {
   Construction,
   Settings,
   Minus,
-  Switch,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -43,6 +43,7 @@ export function AppSidebar() {
   const [userId, setUserId] = useState<string | null>(null);
   const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [showProjectAddress, setShowProjectAddress] = useState(true);
+  const [isProjectActive, setIsProjectActive] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -114,7 +115,10 @@ export function AppSidebar() {
                 </button>
               </div>
               <div className="flex items-center space-x-2">
-                <Switch className="h-4 w-4" />
+                <Switch 
+                  checked={isProjectActive}
+                  onCheckedChange={setIsProjectActive}
+                />
                 <span className="text-sm text-muted-foreground">123 Main St, City</span>
               </div>
             </div>
