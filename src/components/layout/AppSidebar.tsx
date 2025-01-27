@@ -10,20 +10,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import {
-  Building2,
-  FolderKanban,
-  LayoutDashboard,
-  Users,
-  MessageSquare,
-  HelpCircle,
-  LogOut,
-  ChevronDown,
-  ChevronRight,
-  Construction,
-  Settings,
-  Minus,
-} from "lucide-react";
+import { Building2, FolderKanban, Users, MessageSquare, HelpCircle, LogOut, ChevronDown, ChevronRight, Construction, Minus, Plus, LayoutTemplate, Gauge, ProjectorIcon as ProjectIcon, Bot, Settings, SwitchCamera } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -31,7 +18,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -89,7 +78,6 @@ export function AppSidebar() {
 
   const isSubmenuOpen = (menuName: string) => openMenus.includes(menuName);
 
-  // Move the conditional return after all hooks are defined
   if (location.pathname === "/") {
     return null;
   }
@@ -100,29 +88,49 @@ export function AppSidebar() {
         <div className="flex flex-col space-y-4">
           <div className="flex items-center space-x-2">
             <Construction className="h-6 w-6" />
-            <span className="text-lg font-semibold">Kompanjon</span>
+            <span className="text-2xl font-semibold">Kompanjon</span>
           </div>
           
-          {showProjectAddress && (
-            <div className="flex flex-col space-y-2 bg-muted p-3 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Project Address</span>
+          <div className="flex flex-col space-y-2 bg-muted p-3 rounded-lg">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Project</span>
+              <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => setShowProjectAddress(false)}
+                  onClick={() => navigate("/project-selection")}
                   className="text-muted-foreground hover:text-primary"
+                  title="Switch Project"
                 >
-                  <Minus className="h-4 w-4" />
+                  <SwitchCamera className="h-4 w-4" />
+                </button>
+                <button 
+                  onClick={() => navigate("/project-settings")}
+                  className="text-muted-foreground hover:text-primary"
+                  title="Project Settings"
+                >
+                  <Settings className="h-4 w-4" />
+                </button>
+                <button 
+                  onClick={() => setShowProjectAddress(!showProjectAddress)}
+                  className="text-muted-foreground hover:text-primary"
+                  title={showProjectAddress ? "Minimize" : "Expand"}
+                >
+                  {showProjectAddress ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                 </button>
               </div>
-              <div className="flex items-center space-x-2">
-                <Switch 
-                  checked={isProjectActive}
-                  onCheckedChange={setIsProjectActive}
-                />
-                <span className="text-sm text-muted-foreground">123 Main St, City</span>
-              </div>
             </div>
-          )}
+            {showProjectAddress && (
+              <div className="flex items-center space-x-2">
+                <a 
+                  href="https://maps.google.com/?q=123+Main+St+City" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm text-muted-foreground hover:text-primary hover:underline"
+                >
+                  123 Main St, City
+                </a>
+              </div>
+            )}
+          </div>
         </div>
       </SidebarHeader>
 
@@ -130,13 +138,13 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarGroup>
             <SidebarMenuButton onClick={() => navigate("/dashboard")}>
-              <LayoutDashboard className="h-4 w-4" />
+              <Gauge className="h-4 w-4" />
               <span>Dashboard</span>
             </SidebarMenuButton>
 
             <div>
               <SidebarMenuButton onClick={() => toggleSubmenu("organization")}>
-                <Building2 className="h-4 w-4" />
+                <ProjectIcon className="h-4 w-4" />
                 <span>Organization</span>
                 {isSubmenuOpen("organization") ? (
                   <ChevronDown className="ml-auto h-4 w-4" />
@@ -193,18 +201,14 @@ export function AppSidebar() {
             </SidebarMenuButton>
 
             <SidebarMenuButton onClick={() => navigate("/communication")}>
-              <MessageSquare className="h-4 w-4" />
+              <LayoutTemplate className="h-4 w-4" />
               <span>Templates</span>
             </SidebarMenuButton>
 
             <SidebarMenuButton onClick={() => navigate("/advice")}>
-              <HelpCircle className="h-4 w-4" />
+              <Bot className="h-4 w-4" />
               <span>Advice</span>
-            </SidebarMenuButton>
-
-            <SidebarMenuButton onClick={() => navigate("/project-settings")}>
-              <Settings className="h-4 w-4" />
-              <span>Project Settings</span>
+              <Badge variant="secondary" className="ml-auto">Beta</Badge>
             </SidebarMenuButton>
           </SidebarGroup>
         </SidebarMenu>
@@ -233,8 +237,13 @@ export function AppSidebar() {
           <DropdownMenuContent align="start" className="w-56">
             <DropdownMenuItem onClick={() => navigate("/preferences")}>
               <Settings className="mr-2 h-4 w-4" />
-              <span>Preferences</span>
+              <span>Personal Preferences</span>
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/project-settings")}>
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Project Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Sign Out</span>

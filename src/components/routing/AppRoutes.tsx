@@ -13,6 +13,7 @@ import Partners from "@/pages/Partners";
 import Communication from "@/pages/Communication";
 import Advice from "@/pages/Advice";
 import ProjectSettings from "@/pages/ProjectSettings";
+import ProjectSelection from "@/pages/ProjectSelection";
 import Index from "@/pages/Index";
 
 export const AppRoutes = () => {
@@ -120,6 +121,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <ProjectSettings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/project-selection"
+        element={
+          <ProtectedRoute>
+            <ProjectSelection />
           </ProtectedRoute>
         }
       />
