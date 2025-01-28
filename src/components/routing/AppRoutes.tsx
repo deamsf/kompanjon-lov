@@ -15,6 +15,7 @@ import Advice from "@/pages/Advice";
 import ProjectSettings from "@/pages/ProjectSettings";
 import ProjectSelection from "@/pages/ProjectSelection";
 import Index from "@/pages/Index";
+import Preferences from "@/pages/Preferences";
 
 export const AppRoutes = () => {
   return (
@@ -129,6 +130,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <ProjectSelection />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/preferences"
+        element={
+          <ProtectedRoute>
+            <Preferences />
           </ProtectedRoute>
         }
       />

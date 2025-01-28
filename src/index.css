@@ -35,19 +35,12 @@
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -98,4 +91,33 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Frappe Gantt styles */
+.gantt .bar-wrapper:hover .bar {
+  fill: hsl(var(--primary)) !important;
+}
+
+.gantt .bar {
+  fill: hsl(var(--primary)/0.8) !important;
+}
+
+.gantt .bar-label {
+  fill: hsl(var(--foreground)) !important;
+}
+
+.gantt .grid-header {
+  fill: hsl(var(--muted)) !important;
+}
+
+.gantt .grid-row {
+  fill: hsl(var(--background)) !important;
+}
+
+.gantt .lower-text, .gantt .upper-text {
+  fill: hsl(var(--foreground)) !important;
+}
+
+.gantt .today-highlight {
+  fill: hsl(var(--accent)) !important;
 }

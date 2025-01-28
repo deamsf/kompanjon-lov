@@ -43,7 +43,7 @@ const Index = () => {
           title: "Success",
           description: "Logged in successfully",
         });
-        navigate("/files");
+        navigate("/dashboard");
       }
     } catch (error) {
       const authError = error as AuthError;
