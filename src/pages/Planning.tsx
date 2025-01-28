@@ -67,27 +67,43 @@ const Planning = () => {
         progress: 100,
       }));
 
+      // Clear previous instance if it exists
       if (ganttInstance.current) {
-        ganttInstance.current.destroy();
+        try {
+          // Remove the DOM element completely
+          while (ganttRef.current.firstChild) {
+            ganttRef.current.removeChild(ganttRef.current.firstChild);
+          }
+        } catch (error) {
+          console.error("Error cleaning up Gantt chart:", error);
+        }
       }
 
-      ganttInstance.current = new Gantt(ganttRef.current, tasks, {
-        view_modes: ['Day', 'Week', 'Month'],
-        view_mode: 'Week',
-        date_format: 'YYYY-MM-DD',
-        bar_height: 40,
-        padding: 18,
-      });
+      try {
+        // Create new instance
+        ganttInstance.current = new Gantt(ganttRef.current, tasks, {
+          view_modes: ['Day', 'Week', 'Month'],
+          view_mode: 'Week',
+          date_format: 'YYYY-MM-DD',
+          bar_height: 40,
+          padding: 18,
+        });
+      } catch (error) {
+        console.error("Error initializing Gantt chart:", error);
+        toast.error("Failed to initialize Gantt chart");
+      }
     }
 
     return () => {
-      if (ganttInstance.current) {
-        ganttInstance.current.destroy();
+      if (ganttRef.current) {
+        // Clean up by removing all children
+        while (ganttRef.current.firstChild) {
+          ganttRef.current.removeChild(ganttRef.current.firstChild);
+        }
+        ganttInstance.current = null;
       }
     };
   }, [viewMode, planningItems]);
-
-  // ... rest of the component remains unchanged ...
 
   return (
     <div className="container mx-auto p-6">
@@ -106,7 +122,8 @@ const Planning = () => {
             <DialogTrigger asChild>
               <Button onClick={() => {
                 setEditingItem(null);
-                setSelectedDate(undefined);
+                setStartDate(undefined);
+                setEndDate(undefined);
               }}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Task
