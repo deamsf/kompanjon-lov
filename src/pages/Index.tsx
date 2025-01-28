@@ -39,6 +39,25 @@ const Index = () => {
       }
 
       if (signInData.session) {
+        // Verify the session is properly set
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          throw new Error("Session not established");
+        }
+
+        // Try to fetch the user profile to verify connectivity
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profileError) {
+          console.error("Profile fetch error:", profileError);
+          // Continue with login even if profile fetch fails
+        }
+
         toast({
           title: "Success",
           description: "Logged in successfully",
