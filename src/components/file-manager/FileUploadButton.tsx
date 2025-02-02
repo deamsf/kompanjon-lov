@@ -24,18 +24,23 @@ export const FileUploadButton = ({
     if (!file) return;
 
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    if (folderId) formData.append('folderId', folderId);
-    if (tags.length > 0) formData.append('tags', tags.join(','));
-    formData.append('type', fileType);
-
+    
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
         throw new Error('No active session found');
       }
+
+      // Create a blob from the file
+      const blob = new Blob([file], { type: file.type });
+      
+      // Create FormData and append file as blob
+      const formData = new FormData();
+      formData.append('file', blob, file.name);
+      if (folderId) formData.append('folderId', folderId);
+      if (tags.length > 0) formData.append('tags', tags.join(','));
+      formData.append('type', fileType);
 
       const { data, error } = await supabase.functions.invoke('upload-file', {
         body: formData,
@@ -51,7 +56,7 @@ export const FileUploadButton = ({
       if (onUploadComplete) {
         onUploadComplete(data.file);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
       toast.error("Failed to upload file");
     } finally {

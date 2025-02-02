@@ -36,19 +36,31 @@ serve(async (req) => {
       )
     }
 
-    const formData = await req.formData()
-    const file = formData.get('file')
-    const folderId = formData.get('folderId')
-    const tags = formData.get('tags')?.toString().split(',').filter(Boolean) || []
-
-    if (!file) {
+    // Parse the form data
+    let formData;
+    try {
+      formData = await req.formData();
+    } catch (error) {
+      console.error('Form data parsing error:', error);
       return new Response(
-        JSON.stringify({ error: 'No file uploaded' }),
+        JSON.stringify({ error: 'Invalid form data', details: error.message }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
 
-    const sanitizedFileName = file.name.replace(/[^\x00-\x7F]/g, '')
+    const file = formData.get('file')
+    const folderId = formData.get('folderId')
+    const tags = formData.get('tags')?.toString().split(',').filter(Boolean) || []
+    const fileType = formData.get('type')?.toString() || 'document'
+
+    if (!file || !(file instanceof File || file instanceof Blob)) {
+      return new Response(
+        JSON.stringify({ error: 'No valid file uploaded' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    const sanitizedFileName = file instanceof File ? file.name.replace(/[^\x00-\x7F]/g, '') : 'uploaded-file'
     const fileExt = sanitizedFileName.split('.').pop()
     const filePath = `${crypto.randomUUID()}.${fileExt}`
 
@@ -75,9 +87,10 @@ serve(async (req) => {
         name: sanitizedFileName,
         storage_path: filePath,
         content_type: file.type,
-        size: file.size,
+        size: file instanceof File ? file.size : undefined,
         folder_id: folderId || null,
-        created_by: user.id, // Add the user ID here
+        created_by: user.id,
+        type: fileType,
       })
       .select()
       .single()
@@ -110,7 +123,7 @@ serve(async (req) => {
           .from('tags')
           .insert(newTags.map(name => ({ 
             name,
-            created_by: user.id // Add user ID for new tags
+            created_by: user.id
           })))
           .select()
 
