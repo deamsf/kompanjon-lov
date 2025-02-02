@@ -1,5 +1,5 @@
 import Files from "./Files";
 
-const Offers = () => <Files fileType="offers" />;
+const Offers = () => <Files />;
 
 export default Offers;

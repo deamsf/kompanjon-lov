@@ -36,42 +36,19 @@ serve(async (req) => {
       )
     }
 
-    // Parse the form data
-    let formData;
-    try {
-      formData = await req.formData();
-      console.log('FormData parsed successfully');
-    } catch (error) {
-      console.error('Form data parsing error:', error);
-      return new Response(
-        JSON.stringify({ error: 'Invalid form data', details: error.message }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      )
-    }
-
+    const formData = await req.formData()
     const file = formData.get('file')
-    if (!file || !(file instanceof File)) {
+    const folderId = formData.get('folderId')
+    const tags = formData.get('tags')?.toString().split(',').filter(Boolean) || []
+
+    if (!file) {
       return new Response(
-        JSON.stringify({ error: 'No valid file uploaded' }),
+        JSON.stringify({ error: 'No file uploaded' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
 
-    const fileName = formData.get('fileName')?.toString() || file.name
-    const folderId = formData.get('folderId')?.toString()
-    const tags = formData.get('tags')?.toString().split(',').filter(Boolean) || []
-    const fileType = formData.get('type')?.toString() || 'document'
-
-    console.log('Received file data:', {
-      fileName,
-      fileType,
-      tags,
-      folderId,
-      isFile: file instanceof File,
-      contentType: file.type
-    });
-
-    const sanitizedFileName = fileName.replace(/[^\x00-\x7F]/g, '')
+    const sanitizedFileName = file.name.replace(/[^\x00-\x7F]/g, '')
     const fileExt = sanitizedFileName.split('.').pop()
     const filePath = `${crypto.randomUUID()}.${fileExt}`
 
@@ -100,8 +77,7 @@ serve(async (req) => {
         content_type: file.type,
         size: file.size,
         folder_id: folderId || null,
-        created_by: user.id,
-        type: fileType,
+        created_by: user.id, // Add the user ID here
       })
       .select()
       .single()
@@ -134,7 +110,7 @@ serve(async (req) => {
           .from('tags')
           .insert(newTags.map(name => ({ 
             name,
-            created_by: user.id
+            created_by: user.id // Add user ID for new tags
           })))
           .select()
 

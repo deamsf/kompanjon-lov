@@ -8,14 +8,12 @@ interface FileUploadButtonProps {
   onUploadComplete?: (file: any) => void;
   folderId?: string;
   tags?: string[];
-  fileType: string;
 }
 
 export const FileUploadButton = ({ 
   onUploadComplete,
   folderId,
-  tags = [],
-  fileType,
+  tags = []
 }: FileUploadButtonProps) => {
   const [isUploading, setIsUploading] = useState(false);
 
@@ -24,33 +22,23 @@ export const FileUploadButton = ({
     if (!file) return;
 
     setIsUploading(true);
-    
+    const formData = new FormData();
+    formData.append('file', file);
+    if (folderId) formData.append('folderId', folderId);
+    if (tags.length > 0) formData.append('tags', tags.join(','));
+
     try {
+      // Get the current session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
         throw new Error('No active session found');
       }
 
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('fileName', file.name);
-      if (folderId) formData.append('folderId', folderId);
-      if (tags.length > 0) formData.append('tags', tags.join(','));
-      formData.append('type', fileType);
-
-      console.log('Uploading file:', {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        fileType,
-        tags: tags.join(',')
-      });
-
       const { data, error } = await supabase.functions.invoke('upload-file', {
         body: formData,
         headers: {
-          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
 
@@ -61,9 +49,9 @@ export const FileUploadButton = ({
       if (onUploadComplete) {
         onUploadComplete(data.file);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Upload error:', error);
-      toast.error(error.message || "Failed to upload file");
+      toast.error("Failed to upload file");
     } finally {
       setIsUploading(false);
       // Reset the input

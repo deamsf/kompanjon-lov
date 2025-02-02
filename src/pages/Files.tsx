@@ -9,13 +9,8 @@ import { FileItem } from "@/types/files";
 import { Button } from "@/components/ui/button";
 import { Share, Tag, Trash } from "lucide-react";
 import { TagsModal } from "@/components/file-manager/TagsModal";
-import { FileGrid } from "@/components/file-manager/FileGrid";
 
-interface FilesProps {
-  fileType: string;
-}
-
-const Files = ({ fileType }: FilesProps) => {
+const Files = () => {
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [sortField, setSortField] = useState<'name' | 'size' | 'type'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -23,11 +18,10 @@ const Files = ({ fileType }: FilesProps) => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [tagsModalOpen, setTagsModalOpen] = useState(false);
-  const [view, setView] = useState<'list' | 'grid'>('list');
   const { toast } = useToast();
 
   const { data: files = [], isLoading, refetch } = useQuery({
-    queryKey: ['files', sortField, sortDirection, searchTerm, selectedTags, fileType],
+    queryKey: ['files', sortField, sortDirection, searchTerm, selectedTags],
     queryFn: async () => {
       let query = supabase
         .from('files')
@@ -37,14 +31,12 @@ const Files = ({ fileType }: FilesProps) => {
           size,
           content_type,
           created_at,
-          type,
           file_tags (
             tags (
               name
             )
           )
-        `)
-        .eq('type', fileType);
+        `);
 
       if (searchTerm) {
         query = query.ilike('name', `%${searchTerm}%`);
@@ -90,29 +82,28 @@ const Files = ({ fileType }: FilesProps) => {
     }
   };
 
-  const handleTypeChange = async (newType: string) => {
-    try {
-      const { error } = await supabase
-        .from('files')
-        .update({ type: newType })
-        .in('id', selectedFiles);
-
-      if (error) throw error;
-
+  const handleBulkShare = () => {
+    if (selectedFiles.length === 0) {
       toast({
-        title: "Success",
-        description: "File types updated successfully",
-      });
-
-      refetch();
-      setSelectedFiles([]);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update file types",
+        title: "No files selected",
+        description: "Please select at least one file to share",
         variant: "destructive",
       });
+      return;
     }
+    setShareModalOpen(true);
+  };
+
+  const handleBulkTags = () => {
+    if (selectedFiles.length === 0) {
+      toast({
+        title: "No files selected",
+        description: "Please select at least one file to add tags",
+        variant: "destructive",
+      });
+      return;
+    }
+    setTagsModalOpen(true);
   };
 
   const handleBulkDelete = async () => {
@@ -150,21 +141,22 @@ const Files = ({ fileType }: FilesProps) => {
   };
 
   return (
-    <div className="w-full">
+    <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Files</h1>
         <div className="flex gap-2">
           {selectedFiles.length > 0 && (
             <>
               <Button
                 variant="outline"
-                onClick={() => setShareModalOpen(true)}
+                onClick={handleBulkShare}
               >
                 <Share className="w-4 h-4 mr-2" />
                 Share Selected
               </Button>
               <Button
                 variant="outline"
-                onClick={() => setTagsModalOpen(true)}
+                onClick={handleBulkTags}
               >
                 <Tag className="w-4 h-4 mr-2" />
                 Add Tags
@@ -178,19 +170,14 @@ const Files = ({ fileType }: FilesProps) => {
               </Button>
             </>
           )}
+          <FileActions
+            onUploadComplete={() => refetch()}
+            selectedTags={selectedTags}
+          />
         </div>
-        <FileActions
-          onUploadComplete={() => refetch()}
-          selectedTags={selectedTags}
-          selectedFiles={selectedFiles}
-          onViewChange={setView}
-          currentView={view}
-          onTypeChange={handleTypeChange}
-          fileType={fileType}
-        />
       </div>
 
-      {view === 'list' ? (
+      <div className="w-full">
         <FileContainer
           files={files}
           isLoading={isLoading}
@@ -203,14 +190,7 @@ const Files = ({ fileType }: FilesProps) => {
           onTagsChange={setSelectedTags}
           onShare={() => setShareModalOpen(true)}
         />
-      ) : (
-        <FileGrid
-          files={files}
-          isLoading={isLoading}
-          selectedFiles={selectedFiles}
-          onFileSelect={handleFileSelect}
-        />
-      )}
+      </div>
 
       {shareModalOpen && (
         <ShareModal
