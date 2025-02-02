@@ -247,7 +247,7 @@ const Planning = () => {
       }
 
       try {
-        ganttInstance.current = new Gantt(ganttRef.current, tasks, {
+        const gantt = new Gantt(ganttRef.current, tasks, {
           view_modes: ['Day', 'Week', 'Month'],
           view_mode: 'Week',
           date_format: 'YYYY-MM-DD',
@@ -256,26 +256,28 @@ const Planning = () => {
           readonly: !isEditMode,
         });
 
-        // Add event listener for task updates
+        // Add event listener for task updates only in edit mode
         if (isEditMode) {
-          ganttInstance.current.on('date_change', (task: any) => {
-            const updatedTask = {
+          gantt.on('date_change', (task: any, start: string, end: string) => {
+            updateMutation.mutate({
               id: task.id,
-              start_date: task.start,
-              end_date: task.end,
-            };
-            updateMutation.mutate(updatedTask);
+              start_date: start,
+              end_date: end,
+            });
           });
         }
 
+        // Handle responsive width
         const updateWidth = () => {
-          if (ganttRef.current && ganttInstance.current) {
-            ganttInstance.current.change_view_mode();
+          if (ganttRef.current) {
+            const parentWidth = ganttRef.current.parentElement?.clientWidth || 800;
+            ganttRef.current.style.width = `${parentWidth}px`;
+            gantt.change_view_mode();
           }
         };
 
         window.addEventListener('resize', updateWidth);
-        updateWidth();
+        updateWidth(); // Initial width set
 
         return () => {
           window.removeEventListener('resize', updateWidth);
@@ -477,7 +479,7 @@ const Planning = () => {
         </div>
       ) : (
         <div className="bg-background rounded-lg p-4">
-          <div ref={ganttRef} className="w-full overflow-x-auto"></div>
+          <div ref={ganttRef} className="w-full overflow-x-hidden"></div>
         </div>
       )}
     </div>
