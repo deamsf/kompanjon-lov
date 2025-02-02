@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, BarChart2, List, Eye, Edit2 } from "lucide-react";
+import { Plus, Trash2, BarChart2, List, Eye, Edit2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   ToggleGroup,
@@ -45,29 +46,43 @@ const Planning = () => {
   
   const queryClient = useQueryClient();
 
+  // Get current user
+  const { data: session } = useQuery({
+    queryKey: ['session'],
+    queryFn: async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      return session;
+    },
+  });
+
   const { data: planningItems = [], isLoading } = useQuery({
     queryKey: ['planningItems'],
     queryFn: async () => {
+      if (!session?.user?.id) throw new Error('No user logged in');
+      
       const { data, error } = await supabase
         .from('planning_items')
         .select('*')
+        .eq('user_id', session.user.id)
         .order('order_index');
       
       if (error) throw error;
       return data;
     },
+    enabled: !!session?.user?.id,
   });
 
   const createMutation = useMutation({
-    mutationFn: async (newItem: Omit<PlanningItem, 'id' | 'user_id'>) => {
+    mutationFn: async (newItem: Omit<PlanningItem, 'id'>) => {
+      if (!session?.user?.id) throw new Error('No user logged in');
+      
       const { data, error } = await supabase
         .from('planning_items')
-        .insert([
-          {
-            ...newItem,
-            order_index: (planningItems?.length || 0) + 1,
-          }
-        ])
+        .insert([{
+          ...newItem,
+          user_id: session.user.id,
+        }])
         .select()
         .single();
 
@@ -113,11 +128,17 @@ const Planning = () => {
       return;
     }
 
+    if (!session?.user?.id) {
+      toast.error("Please log in to add tasks");
+      return;
+    }
+
     createMutation.mutate({
       title,
       start_date: format(startDate, 'yyyy-MM-dd'),
       end_date: format(endDate, 'yyyy-MM-dd'),
       order_index: (planningItems?.length || 0) + 1,
+      user_id: session.user.id,
     });
   };
 
@@ -162,6 +183,11 @@ const Planning = () => {
 
         return () => {
           window.removeEventListener('resize', updateWidth);
+          if (ganttRef.current) {
+            while (ganttRef.current.firstChild) {
+              ganttRef.current.removeChild(ganttRef.current.firstChild);
+            }
+          }
         };
       } catch (error) {
         console.error("Error initializing Gantt chart:", error);
@@ -213,6 +239,9 @@ const Planning = () => {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add New Task</DialogTitle>
+                <DialogDescription>
+                  Create a new task by filling out the form below.
+                </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
