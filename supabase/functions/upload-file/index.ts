@@ -36,6 +36,9 @@ serve(async (req) => {
       )
     }
 
+    // Log the content type for debugging
+    console.log('Content-Type:', req.headers.get('content-type'));
+
     const formData = await req.formData()
     const file = formData.get('file')
     const folderId = formData.get('folderId')
@@ -77,7 +80,7 @@ serve(async (req) => {
         content_type: file.type,
         size: file.size,
         folder_id: folderId || null,
-        created_by: user.id, // Add the user ID here
+        created_by: user.id,
       })
       .select()
       .single()
@@ -110,7 +113,7 @@ serve(async (req) => {
           .from('tags')
           .insert(newTags.map(name => ({ 
             name,
-            created_by: user.id // Add user ID for new tags
+            created_by: user.id
           })))
           .select()
 

@@ -39,6 +39,7 @@ export const FileUploadButton = ({
         body: formData,
         headers: {
           Authorization: `Bearer ${session.access_token}`,
+          // Remove content-type header to let the browser set it with the boundary
         },
       });
 
@@ -49,7 +50,7 @@ export const FileUploadButton = ({
       if (onUploadComplete) {
         onUploadComplete(data.file);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
       toast.error("Failed to upload file");
     } finally {
