@@ -32,9 +32,9 @@ export const FileUploadButton = ({
         throw new Error('No active session found');
       }
 
-      // Create FormData
+      // Create FormData object with the file and metadata
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', file, file.name);
       if (folderId) formData.append('folderId', folderId);
       if (tags.length > 0) formData.append('tags', tags.join(','));
       formData.append('type', fileType);
@@ -51,6 +51,7 @@ export const FileUploadButton = ({
         body: formData,
         headers: {
           Authorization: `Bearer ${session.access_token}`,
+          Accept: 'application/json',
         },
       });
 
