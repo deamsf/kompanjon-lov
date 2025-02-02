@@ -50,8 +50,15 @@ serve(async (req) => {
     }
 
     const file = formData.get('file')
-    const fileName = formData.get('fileName')?.toString() || (file instanceof File ? file.name : 'unnamed')
-    const folderId = formData.get('folderId')
+    if (!file || !(file instanceof File)) {
+      return new Response(
+        JSON.stringify({ error: 'No valid file uploaded' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    const fileName = formData.get('fileName')?.toString() || file.name
+    const folderId = formData.get('folderId')?.toString()
     const tags = formData.get('tags')?.toString().split(',').filter(Boolean) || []
     const fileType = formData.get('type')?.toString() || 'document'
 
@@ -61,15 +68,8 @@ serve(async (req) => {
       tags,
       folderId,
       isFile: file instanceof File,
-      contentType: file instanceof File ? file.type : null
+      contentType: file.type
     });
-
-    if (!file || !(file instanceof File)) {
-      return new Response(
-        JSON.stringify({ error: 'No valid file uploaded' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      )
-    }
 
     const sanitizedFileName = fileName.replace(/[^\x00-\x7F]/g, '')
     const fileExt = sanitizedFileName.split('.').pop()

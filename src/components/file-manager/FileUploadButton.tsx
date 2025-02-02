@@ -32,7 +32,6 @@ export const FileUploadButton = ({
         throw new Error('No active session found');
       }
 
-      // Create FormData object
       const formData = new FormData();
       formData.append('file', file);
       formData.append('fileName', file.name);
@@ -50,6 +49,9 @@ export const FileUploadButton = ({
 
       const { data, error } = await supabase.functions.invoke('upload-file', {
         body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       if (error) throw error;
