@@ -398,7 +398,7 @@ const Planning = () => {
                       <SelectValue placeholder="Select a partner" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="unassigned">None</SelectItem>
                       {partners.map((partner) => (
                         <SelectItem key={partner.id} value={partner.id}>
                           {partner.name}
