@@ -106,6 +106,7 @@ export type Database = {
           name: string
           size: number | null
           storage_path: string
+          type: string
         }
         Insert: {
           content_type?: string | null
@@ -116,6 +117,7 @@ export type Database = {
           name: string
           size?: number | null
           storage_path: string
+          type?: string
         }
         Update: {
           content_type?: string | null
@@ -126,6 +128,7 @@ export type Database = {
           name?: string
           size?: number | null
           storage_path?: string
+          type?: string
         }
         Relationships: [
           {

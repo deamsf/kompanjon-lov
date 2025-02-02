@@ -5,10 +5,7 @@ import Organization from "@/pages/Organization";
 import Agenda from "@/pages/Agenda";
 import Todo from "@/pages/Todo";
 import Planning from "@/pages/Planning";
-import Documents from "@/pages/Documents";
-import Bills from "@/pages/Bills";
-import Offers from "@/pages/Offers";
-import Photos from "@/pages/Photos";
+import Resources from "@/pages/Resources";
 import Partners from "@/pages/Partners";
 import Communication from "@/pages/Communication";
 import Advice from "@/pages/Advice";
@@ -65,7 +62,7 @@ export const AppRoutes = () => {
         path="/documents"
         element={
           <ProtectedRoute>
-            <Documents />
+            <Resources />
           </ProtectedRoute>
         }
       />
@@ -73,7 +70,7 @@ export const AppRoutes = () => {
         path="/bills"
         element={
           <ProtectedRoute>
-            <Bills />
+            <Resources />
           </ProtectedRoute>
         }
       />
@@ -81,7 +78,7 @@ export const AppRoutes = () => {
         path="/offers"
         element={
           <ProtectedRoute>
-            <Offers />
+            <Resources />
           </ProtectedRoute>
         }
       />
@@ -89,7 +86,7 @@ export const AppRoutes = () => {
         path="/photos"
         element={
           <ProtectedRoute>
-            <Photos />
+            <Resources />
           </ProtectedRoute>
         }
       />

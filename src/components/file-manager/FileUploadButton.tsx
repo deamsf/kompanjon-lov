@@ -8,12 +8,14 @@ interface FileUploadButtonProps {
   onUploadComplete?: (file: any) => void;
   folderId?: string;
   tags?: string[];
+  fileType: string;
 }
 
 export const FileUploadButton = ({ 
   onUploadComplete,
   folderId,
-  tags = []
+  tags = [],
+  fileType,
 }: FileUploadButtonProps) => {
   const [isUploading, setIsUploading] = useState(false);
 
@@ -26,9 +28,9 @@ export const FileUploadButton = ({
     formData.append('file', file);
     if (folderId) formData.append('folderId', folderId);
     if (tags.length > 0) formData.append('tags', tags.join(','));
+    formData.append('type', fileType);
 
     try {
-      // Get the current session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
