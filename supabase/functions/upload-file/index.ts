@@ -50,15 +50,18 @@ serve(async (req) => {
     }
 
     const file = formData.get('file')
+    const fileName = formData.get('fileName')?.toString() || file instanceof File ? file.name : 'unnamed'
     const folderId = formData.get('folderId')
     const tags = formData.get('tags')?.toString().split(',').filter(Boolean) || []
     const fileType = formData.get('type')?.toString() || 'document'
 
     console.log('Received file data:', {
-      fileName: file instanceof File ? file.name : 'not a file',
-      fileType: fileType,
-      tags: tags,
-      folderId: folderId
+      fileName,
+      fileType,
+      tags,
+      folderId,
+      isFile: file instanceof File,
+      contentType: file instanceof File ? file.type : null
     });
 
     if (!file || !(file instanceof File)) {
@@ -68,7 +71,7 @@ serve(async (req) => {
       )
     }
 
-    const sanitizedFileName = file.name.replace(/[^\x00-\x7F]/g, '')
+    const sanitizedFileName = fileName.replace(/[^\x00-\x7F]/g, '')
     const fileExt = sanitizedFileName.split('.').pop()
     const filePath = `${crypto.randomUUID()}.${fileExt}`
 
