@@ -20,6 +20,24 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
@@ -32,6 +50,13 @@ interface PlanningItem {
   end_date: string;
   order_index: number;
   user_id: string;
+  partner_id?: string | null;
+}
+
+interface Partner {
+  id: string;
+  name: string;
+  email: string;
 }
 
 const Planning = () => {
@@ -39,8 +64,10 @@ const Planning = () => {
   const [title, setTitle] = useState("");
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string>();
   const [viewMode, setViewMode] = useState<"list" | "gantt">("list");
   const [isEditMode, setIsEditMode] = useState(false);
+  const [editingItem, setEditingItem] = useState<PlanningItem | null>(null);
   const ganttRef = useRef<HTMLDivElement>(null);
   const ganttInstance = useRef<any>(null);
   
@@ -56,6 +83,21 @@ const Planning = () => {
     },
   });
 
+  const { data: partners = [] } = useQuery({
+    queryKey: ['partners'],
+    queryFn: async () => {
+      if (!session?.user?.id) throw new Error('No user logged in');
+      
+      const { data, error } = await supabase
+        .from('partners')
+        .select('*');
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session?.user?.id,
+  });
+
   const { data: planningItems = [], isLoading } = useQuery({
     queryKey: ['planningItems'],
     queryFn: async () => {
@@ -63,7 +105,7 @@ const Planning = () => {
       
       const { data, error } = await supabase
         .from('planning_items')
-        .select('*')
+        .select('*, partners(name)')
         .eq('user_id', session.user.id)
         .order('order_index');
       
@@ -92,14 +134,36 @@ const Planning = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['planningItems'] });
       setIsDialogOpen(false);
-      setTitle("");
-      setStartDate(undefined);
-      setEndDate(undefined);
+      resetForm();
       toast.success("Task added successfully");
     },
     onError: (error) => {
       console.error('Error creating task:', error);
       toast.error("Failed to add task");
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (item: Partial<PlanningItem> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('planning_items')
+        .update(item)
+        .eq('id', item.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['planningItems'] });
+      setIsDialogOpen(false);
+      resetForm();
+      toast.success("Task updated successfully");
+    },
+    onError: (error) => {
+      console.error('Error updating task:', error);
+      toast.error("Failed to update task");
     },
   });
 
@@ -122,9 +186,17 @@ const Planning = () => {
     },
   });
 
+  const resetForm = () => {
+    setTitle("");
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setSelectedPartnerId(undefined);
+    setEditingItem(null);
+  };
+
   const handleSubmit = () => {
     if (!title || !startDate || !endDate) {
-      toast.error("Please fill in all fields");
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -133,13 +205,29 @@ const Planning = () => {
       return;
     }
 
-    createMutation.mutate({
+    const itemData = {
       title,
       start_date: format(startDate, 'yyyy-MM-dd'),
       end_date: format(endDate, 'yyyy-MM-dd'),
-      order_index: (planningItems?.length || 0) + 1,
+      order_index: editingItem ? editingItem.order_index : (planningItems?.length || 0) + 1,
       user_id: session.user.id,
-    });
+      partner_id: selectedPartnerId,
+    };
+
+    if (editingItem) {
+      updateMutation.mutate({ id: editingItem.id, ...itemData });
+    } else {
+      createMutation.mutate(itemData);
+    }
+  };
+
+  const handleEdit = (item: PlanningItem) => {
+    setEditingItem(item);
+    setTitle(item.title);
+    setStartDate(new Date(item.start_date));
+    setEndDate(new Date(item.end_date));
+    setSelectedPartnerId(item.partner_id || undefined);
+    setIsDialogOpen(true);
   };
 
   useEffect(() => {
@@ -152,7 +240,6 @@ const Planning = () => {
         progress: 100,
       }));
 
-      // Clear previous instance if it exists
       if (ganttRef.current) {
         while (ganttRef.current.firstChild) {
           ganttRef.current.removeChild(ganttRef.current.firstChild);
@@ -160,7 +247,6 @@ const Planning = () => {
       }
 
       try {
-        // Create new instance with responsive width
         ganttInstance.current = new Gantt(ganttRef.current, tasks, {
           view_modes: ['Day', 'Week', 'Month'],
           view_mode: 'Week',
@@ -170,10 +256,20 @@ const Planning = () => {
           readonly: !isEditMode,
         });
 
-        // Make it responsive
+        // Add event listener for task updates
+        if (isEditMode) {
+          ganttInstance.current.on('date_change', (task: any) => {
+            const updatedTask = {
+              id: task.id,
+              start_date: task.start,
+              end_date: task.end,
+            };
+            updateMutation.mutate(updatedTask);
+          });
+        }
+
         const updateWidth = () => {
           if (ganttRef.current && ganttInstance.current) {
-            const width = ganttRef.current.parentElement?.clientWidth || 800;
             ganttInstance.current.change_view_mode();
           }
         };
@@ -194,7 +290,7 @@ const Planning = () => {
         toast.error("Failed to initialize Gantt chart");
       }
     }
-  }, [viewMode, planningItems, isEditMode]);
+  }, [viewMode, planningItems, isEditMode, updateMutation]);
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-96">Loading...</div>;
@@ -227,20 +323,16 @@ const Planning = () => {
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => {
-                setTitle("");
-                setStartDate(undefined);
-                setEndDate(undefined);
-              }}>
+              <Button onClick={resetForm}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Task
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add New Task</DialogTitle>
+                <DialogTitle>{editingItem ? "Edit Task" : "Add New Task"}</DialogTitle>
                 <DialogDescription>
-                  Create a new task by filling out the form below.
+                  {editingItem ? "Update the task details below." : "Create a new task by filling out the form below."}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -299,9 +391,27 @@ const Planning = () => {
                     </PopoverContent>
                   </Popover>
                 </div>
+                <div className="grid gap-2">
+                  <Label>Assign Partner</Label>
+                  <Select value={selectedPartnerId} onValueChange={setSelectedPartnerId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a partner" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {partners.map((partner) => (
+                        <SelectItem key={partner.id} value={partner.id}>
+                          {partner.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="flex justify-end">
-                <Button onClick={handleSubmit}>Add Task</Button>
+                <Button onClick={handleSubmit}>
+                  {editingItem ? "Update Task" : "Add Task"}
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -318,14 +428,49 @@ const Planning = () => {
                   <p className="text-sm text-muted-foreground">
                     {format(new Date(item.start_date), "PPP")} - {format(new Date(item.end_date), "PPP")}
                   </p>
+                  {item.partner_id && (
+                    <p className="text-sm text-muted-foreground">
+                      Assigned to: {partners.find(p => p.id === item.partner_id)?.name}
+                    </p>
+                  )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => deleteMutation.mutate(item.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEdit(item)}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-500 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Task</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this task? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteMutation.mutate(item.id)}
+                          className="bg-red-500 hover:bg-red-600"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
             </Card>
           ))}

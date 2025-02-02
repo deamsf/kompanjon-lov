@@ -205,6 +205,7 @@ export type Database = {
           end_date: string
           id: string
           order_index: number
+          partner_id: string | null
           start_date: string
           title: string
           user_id: string
@@ -214,6 +215,7 @@ export type Database = {
           end_date: string
           id?: string
           order_index: number
+          partner_id?: string | null
           start_date: string
           title: string
           user_id: string
@@ -223,11 +225,20 @@ export type Database = {
           end_date?: string
           id?: string
           order_index?: number
+          partner_id?: string | null
           start_date?: string
           title?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "planning_items_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
