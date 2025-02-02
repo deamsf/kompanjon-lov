@@ -55,6 +55,7 @@ const projectComponents = [
 const Partners = () => {
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<string>("all");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: sessionData } = useQuery({
@@ -99,6 +100,7 @@ const Partners = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['partners'] });
       toast.success('Partner added successfully');
+      setIsDialogOpen(false);
     },
     onError: (error) => {
       toast.error('Failed to add partner');
@@ -123,6 +125,7 @@ const Partners = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['partners'] });
       toast.success('Partner updated successfully');
+      setIsDialogOpen(false);
     },
     onError: (error) => {
       toast.error('Failed to update partner');
@@ -193,6 +196,11 @@ const Partners = () => {
     deletePartnerMutation.mutate(id);
   };
 
+  const handleOpenDialog = (partner?: Partner) => {
+    setEditingPartner(partner || null);
+    setIsDialogOpen(true);
+  };
+
   if (!userId) {
     return (
       <div className="container mx-auto p-6 text-center">
@@ -219,9 +227,9 @@ const Partners = () => {
               ))}
             </SelectContent>
           </Select>
-          <Dialog>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button onClick={() => handleOpenDialog()}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Partner
               </Button>
@@ -318,7 +326,7 @@ const Partners = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setEditingPartner(partner)}
+                    onClick={() => handleOpenDialog(partner)}
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
