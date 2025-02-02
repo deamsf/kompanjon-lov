@@ -34,10 +34,18 @@ export const FileUploadButton = ({
 
       // Create FormData
       const formData = new FormData();
-      formData.append('file', file); // Append file directly without creating a Blob
+      formData.append('file', file);
       if (folderId) formData.append('folderId', folderId);
       if (tags.length > 0) formData.append('tags', tags.join(','));
       formData.append('type', fileType);
+
+      console.log('Uploading file:', {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        fileType,
+        tags: tags.join(',')
+      });
 
       const { data, error } = await supabase.functions.invoke('upload-file', {
         body: formData,
@@ -55,7 +63,7 @@ export const FileUploadButton = ({
       }
     } catch (error: any) {
       console.error('Upload error:', error);
-      toast.error("Failed to upload file");
+      toast.error(error.message || "Failed to upload file");
     } finally {
       setIsUploading(false);
       // Reset the input

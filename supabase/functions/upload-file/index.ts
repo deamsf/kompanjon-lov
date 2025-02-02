@@ -40,6 +40,7 @@ serve(async (req) => {
     let formData;
     try {
       formData = await req.formData();
+      console.log('FormData parsed successfully');
     } catch (error) {
       console.error('Form data parsing error:', error);
       return new Response(
@@ -52,6 +53,13 @@ serve(async (req) => {
     const folderId = formData.get('folderId')
     const tags = formData.get('tags')?.toString().split(',').filter(Boolean) || []
     const fileType = formData.get('type')?.toString() || 'document'
+
+    console.log('Received file data:', {
+      fileName: file instanceof File ? file.name : 'not a file',
+      fileType: fileType,
+      tags: tags,
+      folderId: folderId
+    });
 
     if (!file || !(file instanceof File)) {
       return new Response(
