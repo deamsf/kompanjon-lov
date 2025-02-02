@@ -53,14 +53,14 @@ serve(async (req) => {
     const tags = formData.get('tags')?.toString().split(',').filter(Boolean) || []
     const fileType = formData.get('type')?.toString() || 'document'
 
-    if (!file || !(file instanceof File || file instanceof Blob)) {
+    if (!file || !(file instanceof File)) {
       return new Response(
         JSON.stringify({ error: 'No valid file uploaded' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
 
-    const sanitizedFileName = file instanceof File ? file.name.replace(/[^\x00-\x7F]/g, '') : 'uploaded-file'
+    const sanitizedFileName = file.name.replace(/[^\x00-\x7F]/g, '')
     const fileExt = sanitizedFileName.split('.').pop()
     const filePath = `${crypto.randomUUID()}.${fileExt}`
 
@@ -87,7 +87,7 @@ serve(async (req) => {
         name: sanitizedFileName,
         storage_path: filePath,
         content_type: file.type,
-        size: file instanceof File ? file.size : undefined,
+        size: file.size,
         folder_id: folderId || null,
         created_by: user.id,
         type: fileType,

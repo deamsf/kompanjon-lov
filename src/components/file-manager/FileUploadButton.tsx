@@ -32,12 +32,9 @@ export const FileUploadButton = ({
         throw new Error('No active session found');
       }
 
-      // Create a blob from the file
-      const blob = new Blob([file], { type: file.type });
-      
-      // Create FormData and append file as blob
+      // Create FormData
       const formData = new FormData();
-      formData.append('file', blob, file.name);
+      formData.append('file', file); // Append file directly without creating a Blob
       if (folderId) formData.append('folderId', folderId);
       if (tags.length > 0) formData.append('tags', tags.join(','));
       formData.append('type', fileType);
