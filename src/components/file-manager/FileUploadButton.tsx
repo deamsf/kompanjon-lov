@@ -50,10 +50,6 @@ export const FileUploadButton = ({
 
       const { data, error } = await supabase.functions.invoke('upload-file', {
         body: formData,
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'Accept': 'application/json',
-        },
       });
 
       if (error) throw error;

@@ -50,7 +50,7 @@ serve(async (req) => {
     }
 
     const file = formData.get('file')
-    const fileName = formData.get('fileName')?.toString() || file instanceof File ? file.name : 'unnamed'
+    const fileName = formData.get('fileName')?.toString() || (file instanceof File ? file.name : 'unnamed')
     const folderId = formData.get('folderId')
     const tags = formData.get('tags')?.toString().split(',').filter(Boolean) || []
     const fileType = formData.get('type')?.toString() || 'document'
