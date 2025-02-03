@@ -268,9 +268,7 @@ const Partners = () => {
                         <Checkbox
                           id={component}
                           name={component}
-                          defaultChecked={editingPartner?.components.includes(
-                            component
-                          )}
+                          defaultChecked={editingPartner?.components?.includes(component)}
                         />
                         <Label htmlFor={component}>{component}</Label>
                       </div>
@@ -282,7 +280,7 @@ const Partners = () => {
                   <Input
                     id="tags"
                     name="tags"
-                    defaultValue={editingPartner?.tags.join(", ")}
+                    defaultValue={editingPartner?.tags?.join(", ")}
                   />
                 </div>
                 <Button type="submit">
