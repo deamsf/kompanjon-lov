@@ -1,18 +1,12 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Copy } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import EmailTemplateEditor from "@/components/email/EmailTemplateEditor";
+import { EmailTemplateList } from "@/components/email/EmailTemplateList";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface EmailTemplate {
   id: string;
@@ -77,7 +71,6 @@ const Communication = () => {
           name: template.name,
           subject: template.subject,
           body: template.body,
-          user_id: user.id 
         })
         .eq('id', template.id)
         .select()
@@ -128,7 +121,7 @@ const Communication = () => {
   const handleCopyTemplate = (template: EmailTemplate) => {
     setEditingTemplate({
       ...template,
-      id: '', // Clear ID for new template
+      id: '',
       name: `${template.name} (Copy)`,
     });
     setIsDialogOpen(true);
@@ -161,62 +154,27 @@ const Communication = () => {
         </Dialog>
       </div>
 
-      <div className="grid gap-4">
-        {isLoading ? (
-          <Card>
-            <CardContent className="p-6">Loading...</CardContent>
-          </Card>
-        ) : emailTemplates.length === 0 ? (
-          <Card>
-            <CardContent className="p-6 text-center text-muted-foreground">
-              No email templates yet. Create one to get started.
-            </CardContent>
-          </Card>
-        ) : (
-          emailTemplates.map((template: EmailTemplate) => (
-            <Card key={template.id}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold">{template.name}</h3>
-                    <p className="text-sm font-medium">Subject: {template.subject}</p>
-                    <div 
-                      className="text-sm text-muted-foreground mt-2 prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: template.body }}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleCopyTemplate(template)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setEditingTemplate(template);
-                        setIsDialogOpen(true);
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteMutation.mutate(template.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+      {isLoading ? (
+        <Card>
+          <CardContent className="p-6">Loading...</CardContent>
+        </Card>
+      ) : emailTemplates.length === 0 ? (
+        <Card>
+          <CardContent className="p-6 text-center text-muted-foreground">
+            No email templates yet. Create one to get started.
+          </CardContent>
+        </Card>
+      ) : (
+        <EmailTemplateList
+          templates={emailTemplates}
+          onEdit={(template) => {
+            setEditingTemplate(template);
+            setIsDialogOpen(true);
+          }}
+          onDelete={(id) => deleteMutation.mutate(id)}
+          onCopy={handleCopyTemplate}
+        />
+      )}
     </div>
   );
 };
