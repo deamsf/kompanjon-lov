@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,9 +33,11 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
   const [subject, setSubject] = useState(defaultValues?.subject || "");
   const [body, setBody] = useState(defaultValues?.body || "");
   const [selectedVariable, setSelectedVariable] = useState<string>("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const contentEditableRef = useRef<HTMLDivElement>(null);
 
   const handleTextFormat = (format: string) => {
-    const textarea = document.querySelector("textarea[name='body']") as HTMLTextAreaElement;
+    const textarea = textareaRef.current;
     if (!textarea) return;
 
     const start = textarea.selectionStart;
@@ -69,21 +71,49 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
 
     if (formattedText) {
       const newText = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
-      textarea.value = newText;
       setBody(newText);
+      // Reset cursor position after formatting
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
+      }, 0);
     }
   };
 
   const insertVariable = (variable: string) => {
-    const textarea = document.querySelector("textarea[name='body']") as HTMLTextAreaElement;
-    if (!textarea) return;
+    if (isHtmlMode) {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
 
-    const start = textarea.selectionStart;
-    const text = textarea.value;
-    const newText = text.substring(0, start) + `{{${variable}}}` + text.substring(start);
-    textarea.value = newText;
-    setBody(newText);
-    setSelectedVariable(""); // Reset the variable selector
+      const start = textarea.selectionStart;
+      const text = textarea.value;
+      const newText = text.substring(0, start) + `{{${variable}}}` + text.substring(start);
+      setBody(newText);
+      
+      // Reset cursor position after insertion
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + variable.length + 4, start + variable.length + 4);
+      }, 0);
+    } else {
+      const div = contentEditableRef.current;
+      if (!div) return;
+
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return;
+
+      const range = selection.getRangeAt(0);
+      const variableNode = document.createTextNode(`{{${variable}}}`);
+      range.insertNode(variableNode);
+      range.setStartAfter(variableNode);
+      range.setEndAfter(variableNode);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      
+      setBody(div.innerHTML);
+    }
+    // Reset the variable selector
+    setSelectedVariable("");
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -91,8 +121,8 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
     onSubmit({ name, subject, body });
   };
 
-  const previewHtml = () => {
-    return { __html: body };
+  const handleContentEditableChange = (e: React.FormEvent<HTMLDivElement>) => {
+    setBody(e.currentTarget.innerHTML);
   };
 
   return (
@@ -117,7 +147,7 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
             onChange={(e) => setSubject(e.target.value)}
             required
           />
-          <Select value={selectedVariable} onValueChange={(value) => insertVariable(value)}>
+          <Select value={selectedVariable} onValueChange={insertVariable}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Insert variable" />
             </SelectTrigger>
@@ -162,6 +192,7 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
           <div className="flex gap-2">
             {isHtmlMode ? (
               <textarea
+                ref={textareaRef}
                 name="body"
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
@@ -170,13 +201,14 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
               />
             ) : (
               <div
+                ref={contentEditableRef}
                 className="w-full min-h-[200px] p-2 border rounded-md bg-background text-foreground prose prose-sm max-w-none"
                 contentEditable
-                onInput={(e) => setBody(e.currentTarget.innerHTML)}
-                dangerouslySetInnerHTML={previewHtml()}
+                onInput={handleContentEditableChange}
+                dangerouslySetInnerHTML={{ __html: body }}
               />
             )}
-            <Select value={selectedVariable} onValueChange={(value) => insertVariable(value)}>
+            <Select value={selectedVariable} onValueChange={insertVariable}>
               <SelectTrigger className="w-[180px] h-10">
                 <SelectValue placeholder="Insert variable" />
               </SelectTrigger>
