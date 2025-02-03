@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { VectorBackground } from '../shared/VectorBackground';
-import ServiceCard from './ServiceCard';
-import ServiceDetails from './ServiceDetails';
+import { ServiceCard } from './ServiceCard';
+import { ServiceDetails } from './ServiceDetails';
 import { servicesContent } from '../../content/services';
 
 const Services = () => {
@@ -23,13 +23,10 @@ const Services = () => {
           {servicesContent.services.map((service, index) => (
             <ServiceCard
               key={service.id}
-              title={service.title}
-              subtitle={service.subtitle}
-              icon={service.icon as any}
-              description={service.description}
+              {...service}
               isActive={activeService === service.id}
+              isLast={index === servicesContent.services.length - 1}
               onClick={() => setActiveService(activeService === service.id ? null : service.id)}
-              showConnector={index < servicesContent.services.length - 1 ? 'right' : null}
             />
           ))}
         </div>
@@ -39,6 +36,8 @@ const Services = () => {
             key={service.id}
             details={service.details}
             isVisible={activeService === service.id}
+            isLastInSection={false}
+            sectionTitle={`Our ${service.title} activities involve`}
           />
         ))}
       </div>

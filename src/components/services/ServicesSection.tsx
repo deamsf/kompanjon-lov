@@ -37,6 +37,7 @@ export const ServicesSection = () => {
             <React.Fragment key={service.id}>
               <ServiceCard
                 {...service}
+                icon={service.icon as "Search" | "Crown" | "Sparkles"}
                 isActive={activeService === service.id}
                 isLast={index === servicesContent.services.length - 1}
                 onClick={() => setActiveService(

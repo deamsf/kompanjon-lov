@@ -4,6 +4,7 @@ import { ServiceCardNew } from './ServiceCardNew';
 import { ServiceDetailsNew } from './ServiceDetailsNew';
 import { servicesContent } from '../../content/services';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { Service } from './types';
 
 export const ServicesNew = () => {
   const [activeService, setActiveService] = useState<string | null>(null);
@@ -41,6 +42,7 @@ export const ServicesNew = () => {
             <React.Fragment key={service.id}>
               <ServiceCardNew
                 {...service}
+                icon={service.icon as "Search" | "Crown" | "Sparkles"}
                 isActive={activeService === service.id}
                 isLast={index === servicesContent.services.length - 1}
                 onClick={() => setActiveService(
