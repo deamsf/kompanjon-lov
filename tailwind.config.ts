@@ -18,12 +18,6 @@ export default {
 			}
 		},
 		extend: {
-			borderColor: {
-				DEFAULT: 'hsl(var(--border))'
-			},
-			backgroundColor: {
-				background: 'hsl(var(--background))'
-			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
