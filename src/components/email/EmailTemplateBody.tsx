@@ -25,10 +25,12 @@ export const EmailTemplateBody = ({
     }
   }, [isHtmlMode, body]);
 
-  const handleContentEditableChange = (e: React.FormEvent<HTMLDivElement>) => {
-    const newContent = e.currentTarget.innerHTML;
-    if (newContent !== body) {
-      onBodyChange(newContent);
+  const handleContentEditableChange = () => {
+    if (contentEditableRef.current) {
+      const newContent = contentEditableRef.current.innerHTML;
+      if (newContent !== body) {
+        onBodyChange(newContent);
+      }
     }
   };
 
@@ -49,7 +51,7 @@ export const EmailTemplateBody = ({
           className="w-full min-h-[200px] p-2 border rounded-md bg-background text-foreground prose prose-sm max-w-none"
           contentEditable
           onInput={handleContentEditableChange}
-          suppressContentEditableWarning
+          dangerouslySetInnerHTML={{ __html: body }}
         />
       )}
       <Select value={selectedVariable} onValueChange={onVariableSelect}>
