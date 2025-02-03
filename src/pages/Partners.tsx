@@ -209,6 +209,14 @@ const Partners = () => {
     );
   }
 
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6 text-center">
+        <h2 className="text-xl">Loading partners...</h2>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
