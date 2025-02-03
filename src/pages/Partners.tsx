@@ -79,7 +79,7 @@ const Partners = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as Partner[];
+      return (data || []) as Partner[];
     },
     enabled: !!userId,
   });
@@ -156,7 +156,7 @@ const Partners = () => {
 
   const filteredPartners = selectedComponent === "all"
     ? partners
-    : partners.filter((partner) => partner.components.includes(selectedComponent));
+    : partners.filter((partner) => partner.components?.includes(selectedComponent));
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -314,14 +314,14 @@ const Partners = () => {
                     {partner.email}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {partner.components.map((component) => (
+                    {partner.components?.map((component) => (
                       <Badge key={component} variant="secondary">
                         {component}
                       </Badge>
                     ))}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {partner.tags.map((tag) => (
+                    {partner.tags?.map((tag) => (
                       <Badge key={tag} variant="outline">
                         {tag}
                       </Badge>
