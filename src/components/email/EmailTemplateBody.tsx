@@ -21,20 +21,15 @@ export const EmailTemplateBody = ({
   
   useEffect(() => {
     if (!isHtmlMode && contentEditableRef.current) {
-      const div = contentEditableRef.current;
-      const range = document.createRange();
-      const sel = window.getSelection();
-      
-      // Preserve cursor position by moving it to the end
-      range.selectNodeContents(div);
-      range.collapse(false);
-      sel?.removeAllRanges();
-      sel?.addRange(range);
+      contentEditableRef.current.innerHTML = body;
     }
-  }, [isHtmlMode]);
+  }, [isHtmlMode, body]);
 
   const handleContentEditableChange = (e: React.FormEvent<HTMLDivElement>) => {
-    onBodyChange(e.currentTarget.innerHTML);
+    const newContent = e.currentTarget.innerHTML;
+    if (newContent !== body) {
+      onBodyChange(newContent);
+    }
   };
 
   return (
@@ -54,7 +49,7 @@ export const EmailTemplateBody = ({
           className="w-full min-h-[200px] p-2 border rounded-md bg-background text-foreground prose prose-sm max-w-none"
           contentEditable
           onInput={handleContentEditableChange}
-          dangerouslySetInnerHTML={{ __html: body }}
+          suppressContentEditableWarning
         />
       )}
       <Select value={selectedVariable} onValueChange={onVariableSelect}>
