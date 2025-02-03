@@ -73,7 +73,7 @@ const Communication = () => {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (newTemplate: Omit<EmailTemplate, 'id'>) => {
+    mutationFn: async (newTemplate: Omit<EmailTemplate, 'id' | 'user_id'>) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
@@ -105,7 +105,12 @@ const Communication = () => {
 
       const { data, error } = await supabase
         .from('email_templates')
-        .update({ ...template, user_id: user.id })
+        .update({ 
+          name: template.name,
+          subject: template.subject,
+          body: template.body,
+          user_id: user.id 
+        })
         .eq('id', template.id)
         .select()
         .single();
@@ -154,16 +159,10 @@ const Communication = () => {
       body: formData.get('body') as string,
     };
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast.error("You must be logged in");
-      return;
-    }
-
-    if (editingTemplate) {
-      updateMutation.mutate({ ...templateData, id: editingTemplate.id, user_id: user.id });
+    if (editingTemplate?.id) {
+      updateMutation.mutate({ ...templateData, id: editingTemplate.id, user_id: editingTemplate.user_id });
     } else {
-      createMutation.mutate({ ...templateData, user_id: user.id });
+      createMutation.mutate(templateData);
     }
   };
 
@@ -252,7 +251,10 @@ const Communication = () => {
         <h1 className="text-2xl font-bold">Email Templates</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => setEditingTemplate(null)}>
+            <Button onClick={() => {
+              setEditingTemplate(null);
+              setIsDialogOpen(true);
+            }}>
               <Plus className="w-4 h-4 mr-2" />
               Add Template
             </Button>
@@ -260,7 +262,7 @@ const Communication = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                {editingTemplate ? "Edit Email Template" : "Add Email Template"}
+                {editingTemplate?.id ? "Edit Email Template" : "Add Email Template"}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -337,7 +339,7 @@ const Communication = () => {
                 </div>
               </div>
               <Button type="submit">
-                {editingTemplate ? "Update Template" : "Create Template"}
+                {editingTemplate?.id ? "Update Template" : "Create Template"}
               </Button>
             </form>
           </DialogContent>
