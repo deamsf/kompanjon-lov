@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Bold, Italic, Underline, Link, List, ListOrdered } from "lucide-react";
+import { Plus, Pencil, Trash2, Bold, Italic, Underline, Link, List, ListOrdered, Copy } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,6 +18,13 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface EmailTemplate {
   id: string;
@@ -25,6 +32,11 @@ interface EmailTemplate {
   subject: string;
   body: string;
   user_id: string;
+}
+
+interface Partner {
+  id: string;
+  name: string;
 }
 
 const Communication = () => {
@@ -42,6 +54,18 @@ const Communication = () => {
         .from('email_templates')
         .select('*')
         .order('created_at');
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: partners = [] } = useQuery({
+    queryKey: ['partners'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('partners')
+        .select('id, name');
       
       if (error) throw error;
       return data;
@@ -192,6 +216,36 @@ const Communication = () => {
     setSelectedText(selectedText);
   };
 
+  const handleCopyTemplate = (template: EmailTemplate) => {
+    setEditingTemplate({
+      ...template,
+      id: '', // Clear ID for new template
+      name: `${template.name} (Copy)`,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const insertVariable = (field: 'subject' | 'body', variable: string) => {
+    if (field === 'body' && textareaRef) {
+      const start = textareaRef.selectionStart;
+      const text = textareaRef.value;
+      const newText = text.substring(0, start) + `{{${variable}}}` + text.substring(start);
+      textareaRef.value = newText;
+      const event = new Event('input', { bubbles: true });
+      textareaRef.dispatchEvent(event);
+    } else if (field === 'subject') {
+      const subjectInput = document.querySelector('input[name="subject"]') as HTMLInputElement;
+      if (subjectInput) {
+        const start = subjectInput.selectionStart || 0;
+        const text = subjectInput.value;
+        const newText = text.substring(0, start) + `{{${variable}}}` + text.substring(start);
+        subjectInput.value = newText;
+        const event = new Event('input', { bubbles: true });
+        subjectInput.dispatchEvent(event);
+      }
+    }
+  };
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
@@ -221,12 +275,22 @@ const Communication = () => {
               </div>
               <div>
                 <Label htmlFor="subject">Subject</Label>
-                <Input
-                  id="subject"
-                  name="subject"
-                  defaultValue={editingTemplate?.subject}
-                  required
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="subject"
+                    name="subject"
+                    defaultValue={editingTemplate?.subject}
+                    required
+                  />
+                  <Select onValueChange={(value) => insertVariable('subject', value)}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Insert variable" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="partner.name">Partner Name</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div>
                 <Label htmlFor="body">Body</Label>
@@ -252,15 +316,25 @@ const Communication = () => {
                     </ToggleGroupItem>
                   </ToggleGroup>
                 </div>
-                <textarea
-                  id="body"
-                  name="body"
-                  ref={(ref) => setTextareaRef(ref)}
-                  defaultValue={editingTemplate?.body}
-                  required
-                  className="w-full min-h-[200px] p-2 border rounded-md"
-                  onSelect={handleTextSelect}
-                />
+                <div className="flex gap-2">
+                  <textarea
+                    id="body"
+                    name="body"
+                    ref={(ref) => setTextareaRef(ref)}
+                    defaultValue={editingTemplate?.body}
+                    required
+                    className="w-full min-h-[200px] p-2 border rounded-md bg-background text-foreground"
+                    onSelect={handleTextSelect}
+                  />
+                  <Select onValueChange={(value) => insertVariable('body', value)}>
+                    <SelectTrigger className="w-[180px] h-10">
+                      <SelectValue placeholder="Insert variable" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="partner.name">Partner Name</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <Button type="submit">
                 {editingTemplate ? "Update Template" : "Create Template"}
@@ -295,6 +369,13 @@ const Communication = () => {
                     />
                   </div>
                   <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleCopyTemplate(template)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
