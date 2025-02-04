@@ -126,10 +126,10 @@ function ToolbarPlugin() {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        // Clear each format type individually
-        selection.formatText('bold', false);
-        selection.formatText('italic', false);
-        selection.formatText('underline', false);
+        // Clear each format type individually using 0 instead of false
+        selection.formatText('bold', 0);
+        selection.formatText('italic', 0);
+        selection.formatText('underline', 0);
       }
     });
   }, [editor]);
