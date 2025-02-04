@@ -37,7 +37,7 @@ import { useCallback, useEffect, useState } from "react";
 import { $setBlocksType } from "@lexical/selection";
 import { $createHeadingNode, HeadingTagType, HeadingNode } from "@lexical/rich-text";
 import { $patchStyleText } from "@lexical/selection";
-import { ListItemNode, ListNode } from "@lexical/list";
+import { ListItemNode, ListNode, createList } from "@lexical/list";
 import { LinkNode } from "@lexical/link";
 import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
 
@@ -98,9 +98,9 @@ function ToolbarPlugin() {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
         if (type === 'bullet') {
-          $setBlocksType(selection, () => $createListNode('bullet'));
+          createList(selection, 'bullet');
         } else {
-          $setBlocksType(selection, () => $createListNode('number'));
+          createList(selection, 'number');
         }
       }
     });
@@ -121,7 +121,7 @@ function ToolbarPlugin() {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        selection.formatText('');
+        selection.formatText('normal');
       }
     });
   }, [editor]);
