@@ -7,16 +7,7 @@ import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPl
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
-import { 
-  $getRoot, 
-  $createParagraphNode, 
-  $createTextNode, 
-  $getSelection,
-  EditorState,
-  SELECTION_CHANGE_COMMAND,
-  FORMAT_TEXT_COMMAND,
-  $isRangeSelection
-} from 'lexical';
+import { $getRoot, $createParagraphNode, $createTextNode, EditorState } from 'lexical';
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { 
@@ -33,15 +24,13 @@ import {
   FileText
 } from "lucide-react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { $isRangeSelection, FORMAT_TEXT_COMMAND, SELECTION_CHANGE_COMMAND } from "lexical";
 import { useCallback, useEffect, useState } from "react";
 import { $setBlocksType } from "@lexical/selection";
-import { $createHeadingNode, HeadingTagType, HeadingNode } from "@lexical/rich-text";
+import { $createHeadingNode, HeadingTagType } from "@lexical/rich-text";
 import { $patchStyleText } from "@lexical/selection";
-import { ListItemNode, ListNode, $createListNode } from "@lexical/list";
+import { ListItemNode, ListNode } from "@lexical/list";
 import { LinkNode } from "@lexical/link";
-import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
-import { QuoteNode } from "@lexical/rich-text";
-import { ParagraphNode } from 'lexical';
 
 const theme = {
   paragraph: 'mb-1',
@@ -65,15 +54,13 @@ function ToolbarPlugin() {
   const [isMarkdownMode, setIsMarkdownMode] = useState(false);
 
   const updateToolbar = useCallback(() => {
-    editor.getEditorState().read(() => {
-      const selection = $getSelection();
-      if ($isRangeSelection(selection)) {
-        setIsBold(selection.hasFormat('bold'));
-        setIsItalic(selection.hasFormat('italic'));
-        setIsUnderline(selection.hasFormat('underline'));
-      }
-    });
-  }, [editor]);
+    const selection = $getSelection();
+    if ($isRangeSelection(selection)) {
+      setIsBold(selection.hasFormat('bold'));
+      setIsItalic(selection.hasFormat('italic'));
+      setIsUnderline(selection.hasFormat('underline'));
+    }
+  }, []);
 
   useEffect(() => {
     return editor.registerCommand(
@@ -82,26 +69,26 @@ function ToolbarPlugin() {
         updateToolbar();
         return false;
       },
-      1
+      []
     );
   }, [editor, updateToolbar]);
 
   const insertLink = useCallback(() => {
-    editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
     const url = prompt('Enter URL:');
     if (url) {
-      // TODO: Implement proper link insertion
-      console.log('Link URL:', url);
+      editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'link');
     }
   }, [editor]);
 
-  const createListHandler = useCallback((type: 'bullet' | 'number') => {
+  const createList = useCallback((type: 'bullet' | 'number') => {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        $setBlocksType(selection, () => {
-          return $createListNode(type === 'bullet' ? 'bullet' : 'number');
-        });
+        if (type === 'bullet') {
+          $setBlocksType(selection, () => $createListNode('bullet'));
+        } else {
+          $setBlocksType(selection, () => $createListNode('number'));
+        }
       }
     });
   }, [editor]);
@@ -121,9 +108,7 @@ function ToolbarPlugin() {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        selection.formatText('bold');
-        selection.formatText('italic');
-        selection.formatText('underline');
+        selection.formatText();
       }
     });
   }, [editor]);
@@ -162,14 +147,14 @@ function ToolbarPlugin() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => createListHandler('bullet')}
+        onClick={() => createList('bullet')}
       >
         <List className="h-4 w-4" />
       </Button>
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => createListHandler('number')}
+        onClick={() => createList('number')}
       >
         <ListOrdered className="h-4 w-4" />
       </Button>
@@ -227,15 +212,7 @@ export default function LexicalEditor({ onChange, initialValue }: LexicalEditorP
     onError: (error: Error) => {
       console.error(error);
     },
-    nodes: [
-      ParagraphNode,
-      ListItemNode, 
-      ListNode, 
-      LinkNode, 
-      HeadingNode, 
-      HorizontalRuleNode,
-      QuoteNode
-    ],
+    nodes: [ListItemNode, ListNode, LinkNode],
     editorState: initialValue ? () => {
       const root = $getRoot();
       const paragraph = $createParagraphNode();
