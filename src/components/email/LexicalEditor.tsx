@@ -118,7 +118,8 @@ function ToolbarPlugin() {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        selection.formatText('');
+        // Remove all formatting
+        selection.removeFormat();
       }
     });
   }, [editor]);
