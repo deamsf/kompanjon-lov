@@ -7,7 +7,16 @@ import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPl
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
-import { $getRoot, $createParagraphNode, $createTextNode, EditorState } from 'lexical';
+import { 
+  $getRoot, 
+  $createParagraphNode, 
+  $createTextNode, 
+  $getSelection,
+  EditorState,
+  SELECTION_CHANGE_COMMAND,
+  FORMAT_TEXT_COMMAND,
+  $isRangeSelection
+} from 'lexical';
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { 
@@ -24,12 +33,11 @@ import {
   FileText
 } from "lucide-react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { $isRangeSelection, FORMAT_TEXT_COMMAND, SELECTION_CHANGE_COMMAND } from "lexical";
 import { useCallback, useEffect, useState } from "react";
 import { $setBlocksType } from "@lexical/selection";
 import { $createHeadingNode, HeadingTagType } from "@lexical/rich-text";
 import { $patchStyleText } from "@lexical/selection";
-import { ListItemNode, ListNode } from "@lexical/list";
+import { ListItemNode, ListNode, $createListNode } from "@lexical/list";
 import { LinkNode } from "@lexical/link";
 
 const theme = {
@@ -54,13 +62,15 @@ function ToolbarPlugin() {
   const [isMarkdownMode, setIsMarkdownMode] = useState(false);
 
   const updateToolbar = useCallback(() => {
-    const selection = $getSelection();
-    if ($isRangeSelection(selection)) {
-      setIsBold(selection.hasFormat('bold'));
-      setIsItalic(selection.hasFormat('italic'));
-      setIsUnderline(selection.hasFormat('underline'));
-    }
-  }, []);
+    editor.getEditorState().read(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        setIsBold(selection.hasFormat('bold'));
+        setIsItalic(selection.hasFormat('italic'));
+        setIsUnderline(selection.hasFormat('underline'));
+      }
+    });
+  }, [editor]);
 
   useEffect(() => {
     return editor.registerCommand(
@@ -69,7 +79,7 @@ function ToolbarPlugin() {
         updateToolbar();
         return false;
       },
-      []
+      1
     );
   }, [editor, updateToolbar]);
 
@@ -108,7 +118,7 @@ function ToolbarPlugin() {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        selection.formatText();
+        selection.formatText('');
       }
     });
   }, [editor]);
