@@ -41,6 +41,7 @@ import { ListItemNode, ListNode, $createListNode } from "@lexical/list";
 import { LinkNode } from "@lexical/link";
 import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
 import { QuoteNode } from "@lexical/rich-text";
+import { ParagraphNode } from 'lexical';
 
 const theme = {
   paragraph: 'mb-1',
@@ -227,6 +228,7 @@ export default function LexicalEditor({ onChange, initialValue }: LexicalEditorP
       console.error(error);
     },
     nodes: [
+      ParagraphNode,
       ListItemNode, 
       ListNode, 
       LinkNode, 
