@@ -15,7 +15,8 @@ import {
   EditorState,
   SELECTION_CHANGE_COMMAND,
   FORMAT_TEXT_COMMAND,
-  $isRangeSelection
+  $isRangeSelection,
+  $createListNode
 } from 'lexical';
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -37,9 +38,10 @@ import { useCallback, useEffect, useState } from "react";
 import { $setBlocksType } from "@lexical/selection";
 import { $createHeadingNode, HeadingTagType, HeadingNode } from "@lexical/rich-text";
 import { $patchStyleText } from "@lexical/selection";
-import { ListItemNode, ListNode, createList } from "@lexical/list";
+import { ListItemNode, ListNode } from "@lexical/list";
 import { LinkNode } from "@lexical/link";
 import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
+import { QuoteNode } from "@lexical/rich-text";
 
 const theme = {
   paragraph: 'mb-1',
@@ -93,15 +95,13 @@ function ToolbarPlugin() {
     }
   }, [editor]);
 
-  const createList = useCallback((type: 'bullet' | 'number') => {
+  const createListHandler = useCallback((type: 'bullet' | 'number') => {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        if (type === 'bullet') {
-          createList(selection, 'bullet');
-        } else {
-          createList(selection, 'number');
-        }
+        $setBlocksType(selection, () => {
+          return $createListNode(type === 'bullet' ? 'bullet' : 'number');
+        });
       }
     });
   }, [editor]);
@@ -121,7 +121,7 @@ function ToolbarPlugin() {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        selection.formatText('normal');
+        selection.formatText('');
       }
     });
   }, [editor]);
@@ -160,14 +160,14 @@ function ToolbarPlugin() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => createList('bullet')}
+        onClick={() => createListHandler('bullet')}
       >
         <List className="h-4 w-4" />
       </Button>
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => createList('number')}
+        onClick={() => createListHandler('number')}
       >
         <ListOrdered className="h-4 w-4" />
       </Button>
@@ -225,7 +225,14 @@ export default function LexicalEditor({ onChange, initialValue }: LexicalEditorP
     onError: (error: Error) => {
       console.error(error);
     },
-    nodes: [ListItemNode, ListNode, LinkNode, HeadingNode, HorizontalRuleNode],
+    nodes: [
+      ListItemNode, 
+      ListNode, 
+      LinkNode, 
+      HeadingNode, 
+      HorizontalRuleNode,
+      QuoteNode
+    ],
     editorState: initialValue ? () => {
       const root = $getRoot();
       const paragraph = $createParagraphNode();
