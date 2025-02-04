@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Bold, Italic, Underline, Link, List, ListOrdered } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,6 +18,9 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
+import dynamic from 'next/dynamic';
+
+const Editor = dynamic(() => import("@/components/Editor"), { ssr: false });
 
 interface EmailTemplate {
   id: string;
@@ -31,7 +34,7 @@ const Communication = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [bodyText, setBodyText] = useState("");
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [isWysiwyg, setIsWysiwyg] = useState(true);
   const queryClient = useQueryClient();
 
   const { data: emailTemplates = [], isLoading } = useQuery({
@@ -47,19 +50,16 @@ const Communication = () => {
     },
   });
 
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setBodyText(e.target.value);
-  };
-
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-xl font-bold mb-4">Email Templates</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="space-y-4">
         {emailTemplates.map((template) => (
           <Card key={template.id}>
             <CardContent>
               <h2 className="font-semibold">{template.name}</h2>
               <p className="text-sm text-gray-600">{template.subject}</p>
+              <p className="text-sm text-gray-400 mt-2">{template.body.slice(0, 200)}...</p>
               <div className="flex space-x-2 mt-2">
                 <Button onClick={() => { setEditingTemplate(template); setBodyText(template.body); setIsDialogOpen(true); }}>
                   <Pencil className="w-4 h-4" />
@@ -79,7 +79,7 @@ const Communication = () => {
             Add Template
           </Button>
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="dark:bg-gray-800">
           <DialogHeader>
             <DialogTitle>
               {editingTemplate ? "Edit Email Template" : "Add Email Template"}
@@ -96,15 +96,22 @@ const Communication = () => {
             </div>
             <div>
               <Label htmlFor="body">Body</Label>
-              <textarea
-                id="body"
-                name="body"
-                ref={textareaRef}
-                value={bodyText}
-                required
-                className="w-full min-h-[200px] p-2 border rounded-md"
-                onChange={handleTextChange}
-              />
+              <ToggleGroup className="mb-2" value={isWysiwyg ? "wysiwyg" : "html"} onValueChange={(val) => setIsWysiwyg(val === "wysiwyg")}>
+                <ToggleGroupItem value="wysiwyg">WYSIWYG</ToggleGroupItem>
+                <ToggleGroupItem value="html">HTML</ToggleGroupItem>
+              </ToggleGroup>
+              {isWysiwyg ? (
+                <Editor value={bodyText} onChange={setBodyText} className="dark:bg-gray-900" />
+              ) : (
+                <textarea
+                  id="body"
+                  name="body"
+                  value={bodyText}
+                  required
+                  className="w-full min-h-[200px] p-2 border rounded-md dark:bg-gray-900 text-white"
+                  onChange={(e) => setBodyText(e.target.value)}
+                />
+              )}
             </div>
             <Button type="submit">
               {editingTemplate ? "Update Template" : "Create Template"}
