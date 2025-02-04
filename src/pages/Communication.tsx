@@ -1,12 +1,23 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useState, useRef } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Plus, Pencil, Trash2, Bold, Italic, Underline, Link, List, ListOrdered } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import EmailTemplateEditor from "@/components/email/EmailTemplateEditor";
-import { EmailTemplateList } from "@/components/email/EmailTemplateList";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@/components/ui/toggle-group";
 
 interface EmailTemplate {
   id: string;
@@ -19,6 +30,9 @@ interface EmailTemplate {
 const Communication = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
+  const [bodyText, setBodyText] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  
   const queryClient = useQueryClient();
 
   const { data: emailTemplates = [], isLoading } = useQuery({
@@ -34,147 +48,44 @@ const Communication = () => {
     },
   });
 
-  const createMutation = useMutation({
-    mutationFn: async (newTemplate: Omit<EmailTemplate, 'id' | 'user_id'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      const { data, error } = await supabase
-        .from('email_templates')
-        .insert([{ ...newTemplate, user_id: user.id }])
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['emailTemplates'] });
-      toast.success("Email template created successfully");
-      setIsDialogOpen(false);
-      setEditingTemplate(null);
-    },
-    onError: (error) => {
-      toast.error("Failed to create email template");
-      console.error(error);
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async (template: EmailTemplate) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      const { data, error } = await supabase
-        .from('email_templates')
-        .update({ 
-          name: template.name,
-          subject: template.subject,
-          body: template.body,
-        })
-        .eq('id', template.id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['emailTemplates'] });
-      toast.success("Email template updated successfully");
-      setIsDialogOpen(false);
-      setEditingTemplate(null);
-    },
-    onError: (error) => {
-      toast.error("Failed to update email template");
-      console.error(error);
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('email_templates')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['emailTemplates'] });
-      toast.success("Email template deleted successfully");
-    },
-    onError: (error) => {
-      toast.error("Failed to delete email template");
-      console.error(error);
-    },
-  });
-
-  const handleSubmit = (templateData: { name: string; subject: string; body: string }) => {
-    if (editingTemplate?.id) {
-      updateMutation.mutate({ ...templateData, id: editingTemplate.id, user_id: editingTemplate.user_id });
-    } else {
-      createMutation.mutate(templateData);
-    }
-  };
-
-  const handleCopyTemplate = (template: EmailTemplate) => {
-    setEditingTemplate({
-      ...template,
-      id: '',
-      name: `${template.name} (Copy)`,
-    });
-    setIsDialogOpen(true);
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setBodyText(e.target.value);
   };
 
   return (
     <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Email Templates</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => {
-              setEditingTemplate(null);
-              setIsDialogOpen(true);
-            }}>
-              Add Template
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogTrigger asChild>
+          <Button onClick={() => setEditingTemplate(null)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Template
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingTemplate ? "Edit Email Template" : "Add Email Template"}
+            </DialogTitle>
+          </DialogHeader>
+          <form className="space-y-4">
+            <div>
+              <Label htmlFor="body">Body</Label>
+              <textarea
+                id="body"
+                name="body"
+                ref={textareaRef}
+                value={bodyText}
+                required
+                className="w-full min-h-[200px] p-2 border rounded-md"
+                onChange={handleTextChange}
+              />
+            </div>
+            <Button type="submit">
+              {editingTemplate ? "Update Template" : "Create Template"}
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingTemplate?.id ? "Edit Email Template" : "Add Email Template"}
-              </DialogTitle>
-            </DialogHeader>
-            <EmailTemplateEditor
-              defaultValues={editingTemplate || undefined}
-              onSubmit={handleSubmit}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {isLoading ? (
-        <Card>
-          <CardContent className="p-6">Loading...</CardContent>
-        </Card>
-      ) : emailTemplates.length === 0 ? (
-        <Card>
-          <CardContent className="p-6 text-center text-muted-foreground">
-            No email templates yet. Create one to get started.
-          </CardContent>
-        </Card>
-      ) : (
-        <EmailTemplateList
-          templates={emailTemplates}
-          onEdit={(template) => {
-            setEditingTemplate(template);
-            setIsDialogOpen(true);
-          }}
-          onDelete={(id) => deleteMutation.mutate(id)}
-          onCopy={handleCopyTemplate}
-        />
-      )}
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
