@@ -7,7 +7,13 @@ import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPl
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
-import { $getRoot, $createParagraphNode, $createTextNode, EditorState } from 'lexical';
+import { 
+  $getRoot, 
+  $createParagraphNode, 
+  $createTextNode, 
+  EditorState,
+  ParagraphNode
+} from 'lexical';
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { 
@@ -27,10 +33,17 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { $isRangeSelection, FORMAT_TEXT_COMMAND, SELECTION_CHANGE_COMMAND } from "lexical";
 import { useCallback, useEffect, useState } from "react";
 import { $setBlocksType } from "@lexical/selection";
-import { $createHeadingNode, HeadingTagType } from "@lexical/rich-text";
+import { 
+  $createHeadingNode, 
+  HeadingNode, 
+  HeadingTagType 
+} from "@lexical/rich-text";
 import { $patchStyleText } from "@lexical/selection";
 import { ListItemNode, ListNode } from "@lexical/list";
 import { LinkNode } from "@lexical/link";
+import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
+import { CodeNode } from "@lexical/code";
+import { QuoteNode } from "@lexical/rich-text";
 
 const theme = {
   paragraph: 'mb-1',
@@ -63,6 +76,7 @@ function ToolbarPlugin() {
   }, []);
 
   useEffect(() => {
+    if (!editor) return;
     return editor.registerCommand(
       SELECTION_CHANGE_COMMAND,
       () => {
@@ -74,6 +88,7 @@ function ToolbarPlugin() {
   }, [editor, updateToolbar]);
 
   const insertLink = useCallback(() => {
+    if (!editor) return;
     const url = prompt('Enter URL:');
     if (url) {
       editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'link');
@@ -81,19 +96,20 @@ function ToolbarPlugin() {
   }, [editor]);
 
   const createList = useCallback((type: 'bullet' | 'number') => {
+    if (!editor) return;
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        if (type === 'bullet') {
-          $setBlocksType(selection, () => $createListNode('bullet'));
-        } else {
-          $setBlocksType(selection, () => $createListNode('number'));
-        }
+        const listNode = type === 'bullet' ? 
+          $createParagraphNode().append($createTextNode('• ')) :
+          $createParagraphNode().append($createTextNode('1. '));
+        $setBlocksType(selection, () => listNode);
       }
     });
   }, [editor]);
 
   const alignText = useCallback((alignment: 'left' | 'center' | 'right') => {
+    if (!editor) return;
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
@@ -105,10 +121,11 @@ function ToolbarPlugin() {
   }, [editor]);
 
   const clearFormatting = useCallback(() => {
+    if (!editor) return;
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        selection.formatText();
+        selection.removeFormat();
       }
     });
   }, [editor]);
@@ -117,21 +134,21 @@ function ToolbarPlugin() {
     <div className="flex items-center gap-1 p-1 border-b mb-2">
       <Toggle
         pressed={isBold}
-        onPressedChange={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold')}
+        onPressedChange={() => editor?.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold')}
         size="sm"
       >
         <Bold className="h-4 w-4" />
       </Toggle>
       <Toggle
         pressed={isItalic}
-        onPressedChange={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic')}
+        onPressedChange={() => editor?.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic')}
         size="sm"
       >
         <Italic className="h-4 w-4" />
       </Toggle>
       <Toggle
         pressed={isUnderline}
-        onPressedChange={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline')}
+        onPressedChange={() => editor?.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline')}
         size="sm"
       >
         <Underline className="h-4 w-4" />
@@ -212,7 +229,16 @@ export default function LexicalEditor({ onChange, initialValue }: LexicalEditorP
     onError: (error: Error) => {
       console.error(error);
     },
-    nodes: [ListItemNode, ListNode, LinkNode],
+    nodes: [
+      ParagraphNode,
+      ListItemNode,
+      ListNode,
+      LinkNode,
+      HeadingNode,
+      HorizontalRuleNode,
+      CodeNode,
+      QuoteNode
+    ],
     editorState: initialValue ? () => {
       const root = $getRoot();
       const paragraph = $createParagraphNode();
