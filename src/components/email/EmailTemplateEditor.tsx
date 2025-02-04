@@ -2,9 +2,18 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { EmailTemplateToolbar } from "./EmailTemplateToolbar";
-import { EmailTemplateBody } from "./EmailTemplateBody";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@/components/ui/toggle-group";
+import { Bold, Italic, Underline, Link, List, ListOrdered } from "lucide-react";
 
 interface EmailTemplateEditorProps {
   defaultValues?: {
@@ -15,10 +24,10 @@ interface EmailTemplateEditorProps {
   onSubmit: (data: { name: string; subject: string; body: string }) => void;
 }
 
-const EmailTemplateEditor = ({
+const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
   defaultValues,
   onSubmit,
-}: EmailTemplateEditorProps) => {
+}) => {
   const [isHtmlMode, setIsHtmlMode] = useState(false);
   const [name, setName] = useState(defaultValues?.name || "");
   const [subject, setSubject] = useState(defaultValues?.subject || "");
@@ -26,11 +35,14 @@ const EmailTemplateEditor = ({
   const [selectedVariable, setSelectedVariable] = useState<string>("");
 
   const handleTextFormat = (format: string) => {
-    if (!isHtmlMode) return;
-    
-    const selectedText = window.getSelection()?.toString() || "";
+    const textarea = document.querySelector("textarea[name='body']") as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+
     let formattedText = "";
-    
     switch (format) {
       case "bold":
         formattedText = `<b>${selectedText}</b>`;
@@ -56,36 +68,31 @@ const EmailTemplateEditor = ({
     }
 
     if (formattedText) {
-      setBody(body.replace(selectedText, formattedText));
+      const newText = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+      textarea.value = newText;
+      setBody(newText);
     }
   };
 
   const insertVariable = (variable: string) => {
-    const variableText = `{{${variable}}}`;
-    
-    if (isHtmlMode) {
-      const selection = window.getSelection();
-      if (!selection || !selection.rangeCount) return;
-      
-      const range = selection.getRangeAt(0);
-      const textNode = document.createTextNode(variableText);
-      range.insertNode(textNode);
-      range.setStartAfter(textNode);
-      range.setEndAfter(textNode);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      
-      setBody((prev) => prev + variableText);
-    } else {
-      setBody((prev) => prev + variableText);
-    }
-    
-    setSelectedVariable("");
+    const textarea = document.querySelector("textarea[name='body']") as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const text = textarea.value;
+    const newText = text.substring(0, start) + `{{${variable}}}` + text.substring(start);
+    textarea.value = newText;
+    setBody(newText);
+    setSelectedVariable(""); // Reset the variable selector
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     onSubmit({ name, subject, body });
+  };
+
+  const previewHtml = () => {
+    return { __html: body };
   };
 
   return (
@@ -110,7 +117,7 @@ const EmailTemplateEditor = ({
             onChange={(e) => setSubject(e.target.value)}
             required
           />
-          <Select value={selectedVariable} onValueChange={insertVariable}>
+          <Select value={selectedVariable} onValueChange={(value) => insertVariable(value)}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Insert variable" />
             </SelectTrigger>
@@ -123,18 +130,61 @@ const EmailTemplateEditor = ({
       <div>
         <Label htmlFor="body">Body</Label>
         <div className="space-y-2">
-          <EmailTemplateToolbar
-            onFormat={handleTextFormat}
-            isHtmlMode={isHtmlMode}
-            onModeToggle={() => setIsHtmlMode(!isHtmlMode)}
-          />
-          <EmailTemplateBody
-            isHtmlMode={isHtmlMode}
-            body={body}
-            onBodyChange={setBody}
-            onVariableSelect={insertVariable}
-            selectedVariable={selectedVariable}
-          />
+          <div className="flex justify-between items-center">
+            <ToggleGroup type="multiple" className="justify-start">
+              <ToggleGroupItem value="bold" onClick={() => handleTextFormat("bold")}>
+                <Bold className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="italic" onClick={() => handleTextFormat("italic")}>
+                <Italic className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="underline" onClick={() => handleTextFormat("underline")}>
+                <Underline className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="link" onClick={() => handleTextFormat("link")}>
+                <Link className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="list" onClick={() => handleTextFormat("list")}>
+                <List className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="ordered-list" onClick={() => handleTextFormat("ordered-list")}>
+                <ListOrdered className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsHtmlMode(!isHtmlMode)}
+            >
+              {isHtmlMode ? "Preview" : "HTML"}
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            {isHtmlMode ? (
+              <textarea
+                name="body"
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                className="w-full min-h-[200px] p-2 border rounded-md bg-background text-foreground"
+                required
+              />
+            ) : (
+              <div
+                className="w-full min-h-[200px] p-2 border rounded-md bg-background text-foreground prose prose-sm max-w-none"
+                contentEditable
+                onInput={(e) => setBody(e.currentTarget.innerHTML)}
+                dangerouslySetInnerHTML={previewHtml()}
+              />
+            )}
+            <Select value={selectedVariable} onValueChange={(value) => insertVariable(value)}>
+              <SelectTrigger className="w-[180px] h-10">
+                <SelectValue placeholder="Insert variable" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="partner.name">Partner Name</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
       <Button type="submit">

@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="235" height="235" viewBox="-0.5 -0.5 235 235" fill="none">
-  <g>
-    <path d="M 4 80 Q 110 7 220 20" stroke="currentColor" stroke-width="2" stroke-miterlimit="10" fill="none"/>
-    <path d="M 135 226 Q 218 130 220 20" stroke="currentColor" stroke-width="2" stroke-miterlimit="10" fill="none"/>
-    <path d="M 4 80 Q 41 173 135 226" stroke="currentColor" stroke-width="2" stroke-miterlimit="10" fill="none"/>
-  </g>
-</svg>
