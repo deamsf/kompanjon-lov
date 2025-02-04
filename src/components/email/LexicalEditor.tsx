@@ -15,8 +15,7 @@ import {
   EditorState,
   SELECTION_CHANGE_COMMAND,
   FORMAT_TEXT_COMMAND,
-  $isRangeSelection,
-  $createListNode
+  $isRangeSelection
 } from 'lexical';
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -38,7 +37,7 @@ import { useCallback, useEffect, useState } from "react";
 import { $setBlocksType } from "@lexical/selection";
 import { $createHeadingNode, HeadingTagType, HeadingNode } from "@lexical/rich-text";
 import { $patchStyleText } from "@lexical/selection";
-import { ListItemNode, ListNode } from "@lexical/list";
+import { ListItemNode, ListNode, $createListNode } from "@lexical/list";
 import { LinkNode } from "@lexical/link";
 import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
 import { QuoteNode } from "@lexical/rich-text";
@@ -121,7 +120,9 @@ function ToolbarPlugin() {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        selection.formatText('');
+        selection.formatText('bold');
+        selection.formatText('italic');
+        selection.formatText('underline');
       }
     });
   }, [editor]);
