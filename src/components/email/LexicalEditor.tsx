@@ -14,7 +14,8 @@ import {
   EditorState,
   ParagraphNode,
   $getSelection,
-  COMMAND_PRIORITY_NORMAL
+  COMMAND_PRIORITY_NORMAL,
+  TextFormatType
 } from 'lexical';
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -28,8 +29,7 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  RemoveFormatting,
-  FileText
+  RemoveFormatting
 } from "lucide-react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $isRangeSelection, FORMAT_TEXT_COMMAND, SELECTION_CHANGE_COMMAND } from "lexical";
@@ -88,8 +88,7 @@ function ToolbarPlugin() {
     );
   }, [editor, updateToolbar]);
 
-  const insertLink = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
+  const insertLink = useCallback(() => {
     if (!editor) return;
     const url = prompt('Enter URL:');
     if (url) {
@@ -97,8 +96,7 @@ function ToolbarPlugin() {
     }
   }, [editor]);
 
-  const createList = useCallback((e: React.MouseEvent, type: 'bullet' | 'number') => {
-    e.preventDefault();
+  const createList = useCallback((type: 'bullet' | 'number') => {
     if (!editor) return;
     editor.update(() => {
       const selection = $getSelection();
@@ -111,8 +109,7 @@ function ToolbarPlugin() {
     });
   }, [editor]);
 
-  const alignText = useCallback((e: React.MouseEvent, alignment: 'left' | 'center' | 'right') => {
-    e.preventDefault();
+  const alignText = useCallback((alignment: 'left' | 'center' | 'right') => {
     if (!editor) return;
     editor.update(() => {
       const selection = $getSelection();
@@ -124,15 +121,12 @@ function ToolbarPlugin() {
     });
   }, [editor]);
 
-  const clearFormatting = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
+  const clearFormatting = useCallback(() => {
     if (!editor) return;
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        selection.formatText('bold', false);
-        selection.formatText('italic', false);
-        selection.formatText('underline', false);
+        selection.formatText('');
       }
     });
   }, [editor]);
@@ -177,14 +171,14 @@ function ToolbarPlugin() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={(e) => createList(e, 'bullet')}
+        onClick={() => createList('bullet')}
       >
         <List className="h-4 w-4" />
       </Button>
       <Button
         variant="ghost"
         size="sm"
-        onClick={(e) => createList(e, 'number')}
+        onClick={() => createList('number')}
       >
         <ListOrdered className="h-4 w-4" />
       </Button>
@@ -192,21 +186,21 @@ function ToolbarPlugin() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={(e) => alignText(e, 'left')}
+        onClick={() => alignText('left')}
       >
         <AlignLeft className="h-4 w-4" />
       </Button>
       <Button
         variant="ghost"
         size="sm"
-        onClick={(e) => alignText(e, 'center')}
+        onClick={() => alignText('center')}
       >
         <AlignCenter className="h-4 w-4" />
       </Button>
       <Button
         variant="ghost"
         size="sm"
-        onClick={(e) => alignText(e, 'right')}
+        onClick={() => alignText('right')}
       >
         <AlignRight className="h-4 w-4" />
       </Button>
@@ -214,7 +208,7 @@ function ToolbarPlugin() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={(e) => clearFormatting(e)}
+        onClick={clearFormatting}
       >
         <RemoveFormatting className="h-4 w-4" />
       </Button>
