@@ -32,7 +32,6 @@ const Communication = () => {
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [bodyText, setBodyText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  
   const queryClient = useQueryClient();
 
   const { data: emailTemplates = [], isLoading } = useQuery({
@@ -54,9 +53,28 @@ const Communication = () => {
 
   return (
     <div className="container mx-auto p-6">
+      <h1 className="text-xl font-bold mb-4">Email Templates</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {emailTemplates.map((template) => (
+          <Card key={template.id}>
+            <CardContent>
+              <h2 className="font-semibold">{template.name}</h2>
+              <p className="text-sm text-gray-600">{template.subject}</p>
+              <div className="flex space-x-2 mt-2">
+                <Button onClick={() => { setEditingTemplate(template); setBodyText(template.body); setIsDialogOpen(true); }}>
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button variant="destructive" onClick={() => { /* delete logic here */ }}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
-          <Button onClick={() => setEditingTemplate(null)}>
+          <Button onClick={() => { setEditingTemplate(null); setBodyText(""); }}>
             <Plus className="w-4 h-4 mr-2" />
             Add Template
           </Button>
@@ -68,6 +86,14 @@ const Communication = () => {
             </DialogTitle>
           </DialogHeader>
           <form className="space-y-4">
+            <div>
+              <Label htmlFor="name">Name</Label>
+              <Input id="name" name="name" defaultValue={editingTemplate?.name || ""} required />
+            </div>
+            <div>
+              <Label htmlFor="subject">Subject</Label>
+              <Input id="subject" name="subject" defaultValue={editingTemplate?.subject || ""} required />
+            </div>
             <div>
               <Label htmlFor="body">Body</Label>
               <textarea
