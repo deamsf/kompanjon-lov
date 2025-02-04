@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,9 +53,9 @@ const Communication = () => {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-xl font-bold mb-4">Email Templates</h1>
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4">
         {emailTemplates.map((template) => (
-          <Card key={template.id}>
+          <Card key={template.id} className="w-full">
             <CardContent>
               <h2 className="font-semibold">{template.name}</h2>
               <p className="text-sm text-gray-600">{template.subject}</p>
@@ -96,12 +96,12 @@ const Communication = () => {
             </div>
             <div>
               <Label htmlFor="body">Body</Label>
-              <ToggleGroup className="mb-2" value={isWysiwyg ? "wysiwyg" : "html"} onValueChange={(val) => setIsWysiwyg(val === "wysiwyg")}>
+              <ToggleGroup className="mb-2" value={isWysiwyg ? "wysiwyg" : "html"} onValueChange={(val) => setIsWysiwyg(val === "wysiwyg")}>                
                 <ToggleGroupItem value="wysiwyg">WYSIWYG</ToggleGroupItem>
                 <ToggleGroupItem value="html">HTML</ToggleGroupItem>
               </ToggleGroup>
               {isWysiwyg ? (
-                <Editor value={bodyText} onChange={setBodyText} className="dark:bg-gray-900" />
+                <Editor value={bodyText} onChange={(value) => setBodyText(value)} className="dark:bg-gray-900" />
               ) : (
                 <textarea
                   id="body"
