@@ -89,15 +89,17 @@ function ToolbarPlugin() {
     );
   }, [editor, updateToolbar]);
 
-  const insertLink = useCallback(() => {
+  const insertLink = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
     if (!editor) return;
     const url = prompt('Enter URL:');
     if (url) {
-      editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold'); // Using 'bold' as a temporary fix since 'link' isn't a valid TextFormatType
+      editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
     }
   }, [editor]);
 
-  const createList = useCallback((type: 'bullet' | 'number') => {
+  const createList = useCallback((e: React.MouseEvent, type: 'bullet' | 'number') => {
+    e.preventDefault();
     if (!editor) return;
     editor.update(() => {
       const selection = $getSelection();
@@ -110,7 +112,8 @@ function ToolbarPlugin() {
     });
   }, [editor]);
 
-  const alignText = useCallback((alignment: 'left' | 'center' | 'right') => {
+  const alignText = useCallback((e: React.MouseEvent, alignment: 'left' | 'center' | 'right') => {
+    e.preventDefault();
     if (!editor) return;
     editor.update(() => {
       const selection = $getSelection();
@@ -122,35 +125,44 @@ function ToolbarPlugin() {
     });
   }, [editor]);
 
-  const clearFormatting = useCallback(() => {
+  const clearFormatting = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
     if (!editor) return;
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        selection.formatText('');
+        selection.formatText('bold', false);
+        selection.formatText('italic', false);
+        selection.formatText('underline', false);
       }
     });
   }, [editor]);
 
   return (
-    <div className="flex items-center gap-1 p-1 border-b mb-2">
+    <div className="flex items-center gap-1 p-1 border-b mb-2" onClick={(e) => e.stopPropagation()}>
       <Toggle
         pressed={isBold}
-        onPressedChange={() => editor?.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold')}
+        onPressedChange={(pressed) => {
+          editor?.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
+        }}
         size="sm"
       >
         <Bold className="h-4 w-4" />
       </Toggle>
       <Toggle
         pressed={isItalic}
-        onPressedChange={() => editor?.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic')}
+        onPressedChange={(pressed) => {
+          editor?.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic');
+        }}
         size="sm"
       >
         <Italic className="h-4 w-4" />
       </Toggle>
       <Toggle
         pressed={isUnderline}
-        onPressedChange={() => editor?.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline')}
+        onPressedChange={(pressed) => {
+          editor?.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline');
+        }}
         size="sm"
       >
         <Underline className="h-4 w-4" />
@@ -166,14 +178,14 @@ function ToolbarPlugin() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => createList('bullet')}
+        onClick={(e) => createList(e, 'bullet')}
       >
         <List className="h-4 w-4" />
       </Button>
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => createList('number')}
+        onClick={(e) => createList(e, 'number')}
       >
         <ListOrdered className="h-4 w-4" />
       </Button>
@@ -181,21 +193,21 @@ function ToolbarPlugin() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => alignText('left')}
+        onClick={(e) => alignText(e, 'left')}
       >
         <AlignLeft className="h-4 w-4" />
       </Button>
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => alignText('center')}
+        onClick={(e) => alignText(e, 'center')}
       >
         <AlignCenter className="h-4 w-4" />
       </Button>
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => alignText('right')}
+        onClick={(e) => alignText(e, 'right')}
       >
         <AlignRight className="h-4 w-4" />
       </Button>
@@ -203,7 +215,7 @@ function ToolbarPlugin() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={clearFormatting}
+        onClick={(e) => clearFormatting(e)}
       >
         <RemoveFormatting className="h-4 w-4" />
       </Button>
