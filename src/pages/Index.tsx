@@ -3,94 +3,22 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { AuthError, AuthApiError } from "@supabase/supabase-js";
 
 const Index = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!email || !password) {
-      toast({
-        title: "Error",
-        description: "Please enter both email and password",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
-
-    try {
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-
-      if (signInError) {
-        throw signInError;
-      }
-
-      if (signInData.session) {
-        // Verify the session is properly set
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          throw new Error("Session not established");
-        }
-
-        // Try to fetch the user profile to verify connectivity
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profileError) {
-          console.error("Profile fetch error:", profileError);
-          // Continue with login even if profile fetch fails
-        }
-
-        toast({
-          title: "Success",
-          description: "Logged in successfully",
-        });
-        navigate("/dashboard");
-      }
-    } catch (error) {
-      const authError = error as AuthError;
-      console.error("Auth error:", authError);
-      
-      let errorMessage = "An error occurred during authentication";
-      
-      if (authError instanceof AuthApiError) {
-        switch (authError.message) {
-          case "Invalid login credentials":
-            errorMessage = "Invalid email or password";
-            break;
-          case "Email not confirmed":
-            errorMessage = "Please verify your email address";
-            break;
-          default:
-            errorMessage = authError.message;
-        }
-      }
-      
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
+    
+    // Simulate loading
+    setTimeout(() => {
       setIsLoading(false);
-    }
+      navigate("/dashboard");
+    }, 500);
   };
 
   return (
@@ -108,8 +36,6 @@ const Index = () => {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-                required
               />
             </div>
             <div>
@@ -118,9 +44,6 @@ const Index = () => {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-                required
-                minLength={6}
               />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>

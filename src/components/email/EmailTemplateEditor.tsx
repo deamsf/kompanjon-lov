@@ -3,13 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
@@ -32,7 +25,7 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
   const [name, setName] = useState(defaultValues?.name || "");
   const [subject, setSubject] = useState(defaultValues?.subject || "");
   const [body, setBody] = useState(defaultValues?.body || "");
-  const [selectedVariable, setSelectedVariable] = useState<string>("");
+  const [editorState, setEditorState] = useState({ html: "", selectionStart: 0, selectionEnd: 0 });
 
   const handleTextFormat = (format: string) => {
     const textarea = document.querySelector("textarea[name='body']") as HTMLTextAreaElement;
@@ -69,21 +62,15 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
 
     if (formattedText) {
       const newText = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
-      textarea.value = newText;
       setBody(newText);
+      
+      // Maintain cursor position after update
+      requestAnimationFrame(() => {
+        textarea.selectionStart = start;
+        textarea.selectionEnd = start + formattedText.length;
+        textarea.focus();
+      });
     }
-  };
-
-  const insertVariable = (variable: string) => {
-    const textarea = document.querySelector("textarea[name='body']") as HTMLTextAreaElement;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const text = textarea.value;
-    const newText = text.substring(0, start) + `{{${variable}}}` + text.substring(start);
-    textarea.value = newText;
-    setBody(newText);
-    setSelectedVariable(""); // Reset the variable selector
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -91,8 +78,13 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
     onSubmit({ name, subject, body });
   };
 
-  const previewHtml = () => {
-    return { __html: body };
+  const handleContentEditableChange = (e: React.FormEvent<HTMLDivElement>) => {
+    const html = e.currentTarget.innerHTML;
+    setBody(html);
+    setEditorState(prev => ({
+      ...prev,
+      html,
+    }));
   };
 
   return (
@@ -109,23 +101,13 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
       </div>
       <div>
         <Label htmlFor="subject">Subject</Label>
-        <div className="flex gap-2">
-          <Input
-            id="subject"
-            name="subject"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            required
-          />
-          <Select value={selectedVariable} onValueChange={(value) => insertVariable(value)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Insert variable" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="partner.name">Partner Name</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Input
+          id="subject"
+          name="subject"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          required
+        />
       </div>
       <div>
         <Label htmlFor="body">Body</Label>
@@ -159,32 +141,22 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
               {isHtmlMode ? "Preview" : "HTML"}
             </Button>
           </div>
-          <div className="flex gap-2">
-            {isHtmlMode ? (
-              <textarea
-                name="body"
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                className="w-full min-h-[200px] p-2 border rounded-md bg-background text-foreground"
-                required
-              />
-            ) : (
-              <div
-                className="w-full min-h-[200px] p-2 border rounded-md bg-background text-foreground prose prose-sm max-w-none"
-                contentEditable
-                onInput={(e) => setBody(e.currentTarget.innerHTML)}
-                dangerouslySetInnerHTML={previewHtml()}
-              />
-            )}
-            <Select value={selectedVariable} onValueChange={(value) => insertVariable(value)}>
-              <SelectTrigger className="w-[180px] h-10">
-                <SelectValue placeholder="Insert variable" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="partner.name">Partner Name</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {isHtmlMode ? (
+            <textarea
+              name="body"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              className="w-full min-h-[200px] p-2 border rounded-md bg-background text-foreground"
+              required
+            />
+          ) : (
+            <div
+              className="w-full min-h-[200px] p-2 border rounded-md bg-background text-foreground prose prose-sm max-w-none"
+              contentEditable
+              onInput={handleContentEditableChange}
+              dangerouslySetInnerHTML={{ __html: body }}
+            />
+          )}
         </div>
       </div>
       <Button type="submit">
