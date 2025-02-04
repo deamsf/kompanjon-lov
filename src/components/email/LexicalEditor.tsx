@@ -35,10 +35,11 @@ import {
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useCallback, useEffect, useState } from "react";
 import { $setBlocksType } from "@lexical/selection";
-import { $createHeadingNode, HeadingTagType } from "@lexical/rich-text";
+import { $createHeadingNode, HeadingTagType, HeadingNode } from "@lexical/rich-text";
 import { $patchStyleText } from "@lexical/selection";
-import { ListItemNode, ListNode, $createListNode } from "@lexical/list";
+import { ListItemNode, ListNode } from "@lexical/list";
 import { LinkNode } from "@lexical/link";
+import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
 
 const theme = {
   paragraph: 'mb-1',
@@ -84,9 +85,11 @@ function ToolbarPlugin() {
   }, [editor, updateToolbar]);
 
   const insertLink = useCallback(() => {
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
     const url = prompt('Enter URL:');
     if (url) {
-      editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'link');
+      // TODO: Implement proper link insertion
+      console.log('Link URL:', url);
     }
   }, [editor]);
 
@@ -118,8 +121,7 @@ function ToolbarPlugin() {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        // Remove all formatting
-        selection.removeFormat();
+        selection.formatText('');
       }
     });
   }, [editor]);
@@ -223,7 +225,7 @@ export default function LexicalEditor({ onChange, initialValue }: LexicalEditorP
     onError: (error: Error) => {
       console.error(error);
     },
-    nodes: [ListItemNode, ListNode, LinkNode],
+    nodes: [ListItemNode, ListNode, LinkNode, HeadingNode, HorizontalRuleNode],
     editorState: initialValue ? () => {
       const root = $getRoot();
       const paragraph = $createParagraphNode();
