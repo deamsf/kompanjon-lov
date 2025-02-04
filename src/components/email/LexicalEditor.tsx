@@ -66,7 +66,6 @@ function ToolbarPlugin() {
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
-  const [isMarkdownMode, setIsMarkdownMode] = useState(false);
 
   const updateToolbar = useCallback(() => {
     const selection = $getSelection();
@@ -142,7 +141,7 @@ function ToolbarPlugin() {
     <div className="flex items-center gap-1 p-1 border-b mb-2" onClick={(e) => e.stopPropagation()}>
       <Toggle
         pressed={isBold}
-        onPressedChange={(pressed) => {
+        onPressedChange={() => {
           editor?.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
         }}
         size="sm"
@@ -151,7 +150,7 @@ function ToolbarPlugin() {
       </Toggle>
       <Toggle
         pressed={isItalic}
-        onPressedChange={(pressed) => {
+        onPressedChange={() => {
           editor?.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic');
         }}
         size="sm"
@@ -160,7 +159,7 @@ function ToolbarPlugin() {
       </Toggle>
       <Toggle
         pressed={isUnderline}
-        onPressedChange={(pressed) => {
+        onPressedChange={() => {
           editor?.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline');
         }}
         size="sm"
@@ -219,14 +218,6 @@ function ToolbarPlugin() {
       >
         <RemoveFormatting className="h-4 w-4" />
       </Button>
-      <div className="w-px h-4 bg-border mx-1" />
-      <Toggle
-        pressed={isMarkdownMode}
-        onPressedChange={setIsMarkdownMode}
-        size="sm"
-      >
-        <FileText className="h-4 w-4" />
-      </Toggle>
     </div>
   );
 }
@@ -263,21 +254,23 @@ export default function LexicalEditor({ onChange, initialValue }: LexicalEditorP
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <div className="relative w-full min-h-[200px] border rounded-md">
+      <div className="relative w-full border rounded-md">
         <ToolbarPlugin />
-        <RichTextPlugin
-          contentEditable={
-            <ContentEditable 
-              className="min-h-[200px] outline-none p-2"
-            />
-          }
-          placeholder={
-            <div className="absolute top-12 left-2 text-muted-foreground pointer-events-none">
-              Start typing...
-            </div>
-          }
-          ErrorBoundary={LexicalErrorBoundary}
-        />
+        <div className="max-h-[400px] overflow-y-auto">
+          <RichTextPlugin
+            contentEditable={
+              <ContentEditable 
+                className="min-h-[200px] outline-none p-2"
+              />
+            }
+            placeholder={
+              <div className="absolute top-12 left-2 text-muted-foreground pointer-events-none">
+                Start typing...
+              </div>
+            }
+            ErrorBoundary={LexicalErrorBoundary}
+          />
+        </div>
         <ListPlugin />
         <LinkPlugin />
         <MarkdownShortcutPlugin />

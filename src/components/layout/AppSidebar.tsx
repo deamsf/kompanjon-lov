@@ -10,7 +10,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { Building2, FolderKanban, Users, MessageSquare, HelpCircle, LogOut, ChevronDown, ChevronRight, Construction, Minus, Plus, LayoutTemplate, Gauge, ProjectorIcon as ProjectIcon, Bot, Settings, SwitchCamera } from "lucide-react";
+import { Building2, FolderKanban, Users, MessageSquare, HelpCircle, LogOut, ChevronDown, ChevronRight, Construction, Minus, Plus, LayoutTemplate, Gauge, ProjectorIcon as ProjectIcon, Bot, Settings, SwitchCamera, User } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -235,9 +235,13 @@ export function AppSidebar() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuItem onClick={() => navigate("/account")}>
+              <User className="mr-2 h-4 w-4" />
+              <span>Account</span>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/preferences")}>
               <Settings className="mr-2 h-4 w-4" />
-              <span>Personal Preferences</span>
+              <span>Preferences</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/project-settings")}>
               <Settings className="mr-2 h-4 w-4" />
