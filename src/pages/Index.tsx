@@ -99,7 +99,7 @@ const Index = () => {
         <CardContent className="pt-6">
           <h1 className="text-2xl font-bold text-center mb-2">Welcome</h1>
           <p className="text-center text-muted-foreground mb-6">
-            This is a demo version. All features are available without authentication.
+            This is a demo version. All features are available without authentication. jo an ed gmail azerazer
           </p>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
