@@ -19,7 +19,6 @@ import {
   $isRangeSelection,
   FORMAT_TEXT_COMMAND,
   SELECTION_CHANGE_COMMAND,
-  $createTextNode,
   $isTextNode
 } from 'lexical';
 import { Button } from "@/components/ui/button";
@@ -126,7 +125,6 @@ function ToolbarPlugin() {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        // Clear each format type individually using 0 instead of false
         selection.formatText('bold', 0);
         selection.formatText('italic', 0);
         selection.formatText('underline', 0);
