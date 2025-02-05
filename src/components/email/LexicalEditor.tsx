@@ -39,7 +39,8 @@ import { useCallback, useEffect, useState } from "react";
 import { $setBlocksType } from "@lexical/selection";
 import { 
   $createHeadingNode, 
-  HeadingNode 
+  HeadingNode,
+  $isHeadingNode
 } from "@lexical/rich-text";
 import { $patchStyleText } from "@lexical/selection";
 import { 
@@ -57,6 +58,7 @@ import {
   AutoLinkNode
 } from "@lexical/link";
 import { CodeNode } from "@lexical/code";
+import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
 
 const theme = {
   paragraph: 'mb-1',
@@ -239,7 +241,8 @@ export default function LexicalEditor({ onChange, initialValue }: LexicalEditorP
       LinkNode,
       AutoLinkNode,
       HeadingNode,
-      CodeNode
+      CodeNode,
+      HorizontalRuleNode
     ],
     editorState: initialValue ? () => {
       const root = $getRoot();
