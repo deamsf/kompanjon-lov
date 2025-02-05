@@ -59,6 +59,7 @@ import {
 } from "@lexical/link";
 import { CodeNode } from "@lexical/code";
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
+import { QuoteNode } from '@lexical/rich-text';
 
 const theme = {
   paragraph: 'mb-1',
@@ -71,6 +72,7 @@ const theme = {
     ul: 'list-disc ml-4',
     ol: 'list-decimal ml-4',
   },
+  quote: 'border-l-4 border-gray-300 pl-4 my-2',
 };
 
 function ToolbarPlugin() {
@@ -242,7 +244,8 @@ export default function LexicalEditor({ onChange, initialValue }: LexicalEditorP
       AutoLinkNode,
       HeadingNode,
       CodeNode,
-      HorizontalRuleNode
+      HorizontalRuleNode,
+      QuoteNode
     ],
     editorState: initialValue ? () => {
       const root = $getRoot();
