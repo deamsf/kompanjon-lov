@@ -15,7 +15,12 @@ import {
   ParagraphNode,
   $getSelection,
   COMMAND_PRIORITY_NORMAL,
-  TextFormatType
+  TextFormatType,
+  $isRangeSelection,
+  FORMAT_TEXT_COMMAND,
+  SELECTION_CHANGE_COMMAND,
+  $createTextNode,
+  $isTextNode
 } from 'lexical';
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -26,13 +31,9 @@ import {
   Link, 
   List, 
   ListOrdered,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
   RemoveFormatting
 } from "lucide-react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { $isRangeSelection, FORMAT_TEXT_COMMAND, SELECTION_CHANGE_COMMAND } from "lexical";
 import { useCallback, useEffect, useState } from "react";
 import { $setBlocksType } from "@lexical/selection";
 import { 
@@ -42,7 +43,7 @@ import {
 } from "@lexical/rich-text";
 import { $patchStyleText } from "@lexical/selection";
 import { ListItemNode, ListNode } from "@lexical/list";
-import { LinkNode } from "@lexical/link";
+import { LinkNode, $createLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
 import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
 import { CodeNode } from "@lexical/code";
 import { QuoteNode } from "@lexical/rich-text";
@@ -92,7 +93,13 @@ function ToolbarPlugin() {
     if (!editor) return;
     const url = prompt('Enter URL:');
     if (url) {
-      editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
+      editor.update(() => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          const linkNode = $createLinkNode(url);
+          selection.insertNodes([linkNode]);
+        }
+      });
     }
   }, [editor]);
 
@@ -101,22 +108,15 @@ function ToolbarPlugin() {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        const listNode = type === 'bullet' ? 
-          $createParagraphNode().append($createTextNode('• ')) :
-          $createParagraphNode().append($createTextNode('1. '));
-        $setBlocksType(selection, () => listNode);
-      }
-    });
-  }, [editor]);
-
-  const alignText = useCallback((alignment: 'left' | 'center' | 'right') => {
-    if (!editor) return;
-    editor.update(() => {
-      const selection = $getSelection();
-      if ($isRangeSelection(selection)) {
-        $patchStyleText(selection, {
-          textAlign: alignment,
-        });
+        if (type === 'bullet') {
+          const listNode = $createParagraphNode();
+          listNode.append($createTextNode('• '));
+          $setBlocksType(selection, () => listNode);
+        } else {
+          const listNode = $createParagraphNode();
+          listNode.append($createTextNode('1. '));
+          $setBlocksType(selection, () => listNode);
+        }
       }
     });
   }, [editor]);
@@ -174,14 +174,20 @@ function ToolbarPlugin() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => createList('bullet')}
+        onClick={(e) => {
+          e.preventDefault();
+          createList('bullet');
+        }}
       >
         <List className="h-4 w-4" />
       </Button>
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => createList('number')}
+        onClick={(e) => {
+          e.preventDefault();
+          createList('number');
+        }}
       >
         <ListOrdered className="h-4 w-4" />
       </Button>
@@ -189,29 +195,10 @@ function ToolbarPlugin() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => alignText('left')}
-      >
-        <AlignLeft className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => alignText('center')}
-      >
-        <AlignCenter className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => alignText('right')}
-      >
-        <AlignRight className="h-4 w-4" />
-      </Button>
-      <div className="w-px h-4 bg-border mx-1" />
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={clearFormatting}
+        onClick={(e) => {
+          e.preventDefault();
+          clearFormatting();
+        }}
       >
         <RemoveFormatting className="h-4 w-4" />
       </Button>
@@ -253,11 +240,11 @@ export default function LexicalEditor({ onChange, initialValue }: LexicalEditorP
     <LexicalComposer initialConfig={initialConfig}>
       <div className="relative w-full border rounded-md">
         <ToolbarPlugin />
-        <div className="max-h-[400px] overflow-y-auto">
+        <div className="h-[200px] overflow-y-auto">
           <RichTextPlugin
             contentEditable={
               <ContentEditable 
-                className="min-h-[200px] outline-none p-2"
+                className="outline-none p-2 min-h-[200px]"
               />
             }
             placeholder={
