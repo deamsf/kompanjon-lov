@@ -104,6 +104,7 @@ export type Database = {
           folder_id: string | null
           id: string
           name: string
+          project_id: string | null
           size: number | null
           storage_path: string
           type: string
@@ -115,6 +116,7 @@ export type Database = {
           folder_id?: string | null
           id?: string
           name: string
+          project_id?: string | null
           size?: number | null
           storage_path: string
           type?: string
@@ -126,6 +128,7 @@ export type Database = {
           folder_id?: string | null
           id?: string
           name?: string
+          project_id?: string | null
           size?: number | null
           storage_path?: string
           type?: string
@@ -136,6 +139,13 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -406,6 +416,7 @@ export type Database = {
           deadline: string
           description: string
           id: string
+          project_id: string | null
           status: string
           title: string
           user_id: string
@@ -417,6 +428,7 @@ export type Database = {
           deadline: string
           description: string
           id?: string
+          project_id?: string | null
           status: string
           title: string
           user_id: string
@@ -428,11 +440,20 @@ export type Database = {
           deadline?: string
           description?: string
           id?: string
+          project_id?: string | null
           status?: string
           title?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "todos_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

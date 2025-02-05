@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,7 @@ const Dashboard = () => {
         .from('files')
         .select('*')
         .eq('created_by', userId)
-        .eq('project_id', selectedProjectId) // Filter by project
+        .eq('project_id', selectedProjectId)
         .order('created_at', { ascending: false })
         .limit(5);
       
@@ -67,7 +68,7 @@ const Dashboard = () => {
         .from('todos')
         .select('*')
         .eq('user_id', userId)
-        .eq('project_id', selectedProjectId) // Filter by project
+        .eq('project_id', selectedProjectId)
         .order('deadline', { ascending: true })
         .limit(5);
       
