@@ -9,11 +9,20 @@ import { Files, Calendar, ListTodo, Users, MessageSquare } from "lucide-react";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setUserId(session.user.id);
-    });
+    // Get current user and selected project
+    const initializeData = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUserId(session.user.id);
+      }
+      const projectId = localStorage.getItem('selectedProjectId');
+      setSelectedProjectId(projectId);
+    };
+
+    initializeData();
   }, []);
 
   const { data: profile } = useQuery({
@@ -33,38 +42,47 @@ const Dashboard = () => {
   });
 
   const { data: recentFiles } = useQuery({
-    queryKey: ['recent-files', userId],
+    queryKey: ['recent-files', userId, selectedProjectId],
     queryFn: async () => {
-      if (!userId) return [];
+      if (!userId || !selectedProjectId) return [];
       const { data, error } = await supabase
         .from('files')
         .select('*')
         .eq('created_by', userId)
+        .eq('project_id', selectedProjectId) // Filter by project
         .order('created_at', { ascending: false })
         .limit(5);
       
       if (error) throw error;
       return data;
     },
-    enabled: !!userId,
+    enabled: !!userId && !!selectedProjectId,
   });
 
   const { data: upcomingTodos } = useQuery({
-    queryKey: ['upcoming-todos', userId],
+    queryKey: ['upcoming-todos', userId, selectedProjectId],
     queryFn: async () => {
-      if (!userId) return [];
+      if (!userId || !selectedProjectId) return [];
       const { data, error } = await supabase
         .from('todos')
         .select('*')
         .eq('user_id', userId)
+        .eq('project_id', selectedProjectId) // Filter by project
         .order('deadline', { ascending: true })
         .limit(5);
       
       if (error) throw error;
       return data;
     },
-    enabled: !!userId,
+    enabled: !!userId && !!selectedProjectId,
   });
+
+  // If no project is selected, redirect to project selection
+  useEffect(() => {
+    if (userId && !selectedProjectId) {
+      navigate('/project-selection');
+    }
+  }, [userId, selectedProjectId, navigate]);
 
   return (
     <div className="container mx-auto p-6">
@@ -83,11 +101,15 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {recentFiles?.map((file) => (
-                <div key={file.id} className="text-sm text-muted-foreground">
-                  {file.name}
-                </div>
-              ))}
+              {recentFiles?.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No files yet</p>
+              ) : (
+                recentFiles?.map((file) => (
+                  <div key={file.id} className="text-sm text-muted-foreground">
+                    {file.name}
+                  </div>
+                ))
+              )}
             </div>
             <Button 
               variant="ghost" 
@@ -106,11 +128,15 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {upcomingTodos?.map((todo) => (
-                <div key={todo.id} className="text-sm text-muted-foreground">
-                  {todo.title}
-                </div>
-              ))}
+              {upcomingTodos?.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No tasks yet</p>
+              ) : (
+                upcomingTodos?.map((todo) => (
+                  <div key={todo.id} className="text-sm text-muted-foreground">
+                    {todo.title}
+                  </div>
+                ))
+              )}
             </div>
             <Button 
               variant="ghost" 
