@@ -18,7 +18,8 @@ import {
   FORMAT_TEXT_COMMAND,
   SELECTION_CHANGE_COMMAND,
   $isTextNode,
-  createCommand
+  createCommand,
+  ParagraphNode
 } from 'lexical';
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
