@@ -15,14 +15,19 @@ interface Project {
 const ProjectSelection = () => {
   const navigate = useNavigate();
 
-  const { data: projects, isLoading } = useQuery({
+  const { data: projects, isLoading, error } = useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error('Not authenticated');
+
       const { data, error } = await supabase
         .from('projects')
-        .select('*');
+        .select('*')
+        .eq('created_by', user.user.id);
       
       if (error) {
+        console.error('Error fetching projects:', error);
         toast.error('Failed to load projects');
         throw error;
       }
@@ -32,10 +37,33 @@ const ProjectSelection = () => {
   });
 
   const handleProjectSelect = async (projectId: string) => {
-    // Store the selected project ID in localStorage
-    localStorage.setItem('selectedProjectId', projectId);
-    toast.success('Project selected successfully');
-    navigate("/dashboard");
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        toast.error('You must be logged in to select a project');
+        return;
+      }
+
+      // Verify user is a member of the project
+      const { data: membership, error: membershipError } = await supabase
+        .from('project_members')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('user_id', user.user.id)
+        .single();
+
+      if (membershipError || !membership) {
+        toast.error('You do not have access to this project');
+        return;
+      }
+
+      localStorage.setItem('selectedProjectId', projectId);
+      toast.success('Project selected successfully');
+      navigate("/dashboard");
+    } catch (error) {
+      console.error('Error selecting project:', error);
+      toast.error('Failed to select project');
+    }
   };
 
   if (isLoading) {
@@ -46,19 +74,27 @@ const ProjectSelection = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="container mx-auto p-6 text-center">
+        <p className="text-red-500">Error loading projects. Please try again.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Select a Project</h1>
       </div>
 
-      {projects?.length === 0 ? (
+      {!projects || projects.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-muted-foreground">No projects found.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects?.map((project) => (
+          {projects.map((project) => (
             <Card 
               key={project.id}
               className="cursor-pointer hover:shadow-lg transition-shadow"
