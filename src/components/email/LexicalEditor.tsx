@@ -12,14 +12,13 @@ import {
   $createParagraphNode, 
   $createTextNode, 
   EditorState,
-  ParagraphNode,
   $getSelection,
   COMMAND_PRIORITY_NORMAL,
-  TextFormatType,
   $isRangeSelection,
   FORMAT_TEXT_COMMAND,
   SELECTION_CHANGE_COMMAND,
-  $isTextNode
+  $isTextNode,
+  createCommand
 } from 'lexical';
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -30,22 +29,33 @@ import {
   Link, 
   List, 
   ListOrdered,
-  RemoveFormatting
+  RemoveFormatting,
+  Code,
+  Type
 } from "lucide-react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useCallback, useEffect, useState } from "react";
 import { $setBlocksType } from "@lexical/selection";
 import { 
   $createHeadingNode, 
-  HeadingNode, 
-  HeadingTagType 
+  HeadingNode 
 } from "@lexical/rich-text";
 import { $patchStyleText } from "@lexical/selection";
-import { ListItemNode, ListNode } from "@lexical/list";
-import { LinkNode, $createLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
-import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode";
+import { 
+  ListItemNode, 
+  ListNode,
+  $createListNode,
+  $createListItemNode,
+  INSERT_ORDERED_LIST_COMMAND,
+  INSERT_UNORDERED_LIST_COMMAND
+} from "@lexical/list";
+import { 
+  LinkNode, 
+  $createLinkNode, 
+  TOGGLE_LINK_COMMAND,
+  AutoLinkNode
+} from "@lexical/link";
 import { CodeNode } from "@lexical/code";
-import { QuoteNode } from "@lexical/rich-text";
 
 const theme = {
   paragraph: 'mb-1',
@@ -66,6 +76,7 @@ function ToolbarPlugin() {
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
+  const [isMarkdownMode, setIsMarkdownMode] = useState(false);
 
   const updateToolbar = useCallback(() => {
     const selection = $getSelection();
@@ -92,32 +103,17 @@ function ToolbarPlugin() {
     if (!editor) return;
     const url = prompt('Enter URL:');
     if (url) {
-      editor.update(() => {
-        const selection = $getSelection();
-        if ($isRangeSelection(selection)) {
-          const linkNode = $createLinkNode(url);
-          selection.insertNodes([linkNode]);
-        }
-      });
+      editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
     }
   }, [editor]);
 
   const createList = useCallback((type: 'bullet' | 'number') => {
     if (!editor) return;
-    editor.update(() => {
-      const selection = $getSelection();
-      if ($isRangeSelection(selection)) {
-        if (type === 'bullet') {
-          const listNode = $createParagraphNode();
-          listNode.append($createTextNode('• '));
-          $setBlocksType(selection, () => listNode);
-        } else {
-          const listNode = $createParagraphNode();
-          listNode.append($createTextNode('1. '));
-          $setBlocksType(selection, () => listNode);
-        }
-      }
-    });
+    if (type === 'bullet') {
+      editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
+    } else {
+      editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
+    }
   }, [editor]);
 
   const clearFormatting = useCallback(() => {
@@ -131,6 +127,17 @@ function ToolbarPlugin() {
       }
     });
   }, [editor]);
+
+  const toggleMarkdownMode = useCallback(() => {
+    setIsMarkdownMode(!isMarkdownMode);
+    editor.update(() => {
+      const root = $getRoot();
+      const firstChild = root.getFirstChild();
+      if (firstChild) {
+        firstChild.markDirty();
+      }
+    });
+  }, [editor, isMarkdownMode]);
 
   return (
     <div className="flex items-center gap-1 p-1 border-b mb-2" onClick={(e) => e.stopPropagation()}>
@@ -200,6 +207,14 @@ function ToolbarPlugin() {
       >
         <RemoveFormatting className="h-4 w-4" />
       </Button>
+      <div className="w-px h-4 bg-border mx-1" />
+      <Toggle
+        pressed={isMarkdownMode}
+        onPressedChange={toggleMarkdownMode}
+        size="sm"
+      >
+        {isMarkdownMode ? <Code className="h-4 w-4" /> : <Type className="h-4 w-4" />}
+      </Toggle>
     </div>
   );
 }
@@ -221,10 +236,9 @@ export default function LexicalEditor({ onChange, initialValue }: LexicalEditorP
       ListItemNode,
       ListNode,
       LinkNode,
+      AutoLinkNode,
       HeadingNode,
-      HorizontalRuleNode,
-      CodeNode,
-      QuoteNode
+      CodeNode
     ],
     editorState: initialValue ? () => {
       const root = $getRoot();
