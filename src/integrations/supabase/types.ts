@@ -101,36 +101,54 @@ export type Database = {
           content_type: string | null
           created_at: string | null
           created_by: string
+          description: string | null
+          document_category:
+            | Database["public"]["Enums"]["document_category"]
+            | null
+          file_type: Database["public"]["Enums"]["file_type"]
           folder_id: string | null
           id: string
           name: string
           project_id: string | null
           size: number | null
           storage_path: string
+          thumbnail_url: string | null
           type: string
         }
         Insert: {
           content_type?: string | null
           created_at?: string | null
           created_by: string
+          description?: string | null
+          document_category?:
+            | Database["public"]["Enums"]["document_category"]
+            | null
+          file_type?: Database["public"]["Enums"]["file_type"]
           folder_id?: string | null
           id?: string
           name: string
           project_id?: string | null
           size?: number | null
           storage_path: string
+          thumbnail_url?: string | null
           type?: string
         }
         Update: {
           content_type?: string | null
           created_at?: string | null
           created_by?: string
+          description?: string | null
+          document_category?:
+            | Database["public"]["Enums"]["document_category"]
+            | null
+          file_type?: Database["public"]["Enums"]["file_type"]
           folder_id?: string | null
           id?: string
           name?: string
           project_id?: string | null
           size?: number | null
           storage_path?: string
+          thumbnail_url?: string | null
           type?: string
         }
         Relationships: [
@@ -463,7 +481,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      document_category:
+        | "architect_report"
+        | "permit"
+        | "photo"
+        | "offer"
+        | "bill"
+        | "other"
+      file_type: "document" | "bill" | "offer" | "photo"
     }
     CompositeTypes: {
       [_ in never]: never

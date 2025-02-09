@@ -1,11 +1,19 @@
+
 export interface FileItem {
   id: string;
   name: string;
+  description?: string;
   size?: number;
   content_type?: string;
-  created_at?: string;
+  thumbnail_url?: string;
+  storage_path: string;
+  document_category?: string;
+  file_type: 'document' | 'bill' | 'offer' | 'photo';
   tags: string[];
+  created_at?: string;
 }
+
+export type ViewMode = 'grid' | 'list';
 
 export interface ShareItem {
   id: string;
