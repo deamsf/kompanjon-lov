@@ -1,3 +1,4 @@
+
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -17,7 +18,6 @@ import {
   $isRangeSelection,
   FORMAT_TEXT_COMMAND,
   SELECTION_CHANGE_COMMAND,
-  createCommand
 } from 'lexical';
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -43,6 +43,7 @@ import {
 } from "@lexical/list";
 import { $isListNode, $isListItemNode } from "@lexical/list";
 import { $generateHtmlFromNodes } from '@lexical/html';
+import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
 
 const theme = {
   paragraph: 'mb-1',
@@ -119,8 +120,15 @@ function ToolbarPlugin() {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        selection.removeFormat();
-        selection.getNodes().forEach(node => {
+        const anchor = selection.anchor;
+        const focus = selection.focus;
+        const nodes = selection.getNodes();
+        
+        // Remove all formatting
+        selection.insertText(selection.getTextContent());
+        
+        // Remove any links
+        nodes.forEach(node => {
           if ($isLinkNode(node)) {
             node.remove();
           }
@@ -234,7 +242,8 @@ export default function LexicalEditor({ onChange, initialValue }: LexicalEditorP
     nodes: [
       ListItemNode,
       ListNode,
-      LinkNode
+      LinkNode,
+      HorizontalRuleNode
     ],
     editorState: initialValue ? () => {
       const root = $getRoot();
@@ -272,8 +281,8 @@ export default function LexicalEditor({ onChange, initialValue }: LexicalEditorP
           onChange={(editorState: EditorState) => {
             editorState.read(() => {
               const root = $getRoot();
-              const [editor] = useLexicalComposerContext();
-              const html = $generateHtmlFromNodes(editor);
+              const [currentEditor] = useLexicalComposerContext();
+              const html = $generateHtmlFromNodes(currentEditor);
               onChange(html);
             });
           }}
