@@ -44,6 +44,7 @@ import {
 import { $isListNode, $isListItemNode } from "@lexical/list";
 import { $generateHtmlFromNodes } from '@lexical/html';
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
+import { HeadingNode } from '@lexical/rich-text';
 
 const theme = {
   paragraph: 'mb-1',
@@ -58,6 +59,14 @@ const theme = {
     listitem: 'mb-1',
   },
   link: 'text-blue-500 hover:underline',
+  heading: {
+    h1: 'text-2xl font-bold mb-2',
+    h2: 'text-xl font-bold mb-2',
+    h3: 'text-lg font-bold mb-2',
+    h4: 'text-base font-bold mb-2',
+    h5: 'text-sm font-bold mb-2',
+    h6: 'text-xs font-bold mb-2',
+  },
 };
 
 function ToolbarPlugin() {
@@ -243,7 +252,8 @@ export default function LexicalEditor({ onChange, initialValue }: LexicalEditorP
       ListItemNode,
       ListNode,
       LinkNode,
-      HorizontalRuleNode
+      HorizontalRuleNode,
+      HeadingNode
     ],
     editorState: initialValue ? () => {
       const root = $getRoot();
