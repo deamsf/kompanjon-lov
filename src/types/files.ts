@@ -7,7 +7,7 @@ export interface FileItem {
   content_type?: string;
   thumbnail_url?: string;
   storage_path: string;
-  document_category?: string;
+  document_category?: 'architect_report' | 'permit' | 'photo' | 'offer' | 'bill' | 'other';
   file_type: 'document' | 'bill' | 'offer' | 'photo';
   tags: string[];
   created_at?: string;

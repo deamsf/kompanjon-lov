@@ -47,17 +47,18 @@ export const FileUploadZone = ({ fileType, onUploadComplete }: FileUploadZonePro
         const formData = new FormData();
         formData.append('file', file);
         formData.append('fileType', fileType);
-        formData.append('tags', tags.join(','));
-        formData.append('description', description);
+        if (tags.length > 0) {
+          formData.append('tags', tags.join(','));
+        }
+        if (description) {
+          formData.append('description', description);
+        }
         if (category) {
           formData.append('category', category);
         }
 
         const { error } = await supabase.functions.invoke('upload-file', {
           body: formData,
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
         });
 
         if (error) throw error;

@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import FileManager from "@/components/file-manager/FileManager";
-import { FileType } from "@/types/files";
 
 const Files = () => {
   const location = useLocation();

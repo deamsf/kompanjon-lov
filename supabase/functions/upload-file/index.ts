@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
@@ -41,7 +42,9 @@ serve(async (req) => {
 
     const formData = await req.formData()
     const file = formData.get('file')
-    const folderId = formData.get('folderId')
+    const fileType = formData.get('fileType')
+    const description = formData.get('description')
+    const category = formData.get('category')
     const tags = formData.get('tags')?.toString().split(',').filter(Boolean) || []
 
     if (!file) {
@@ -71,7 +74,7 @@ serve(async (req) => {
       )
     }
 
-    // Insert file metadata with user ID
+    // Insert file metadata
     const { data: fileData, error: fileError } = await supabase
       .from('files')
       .insert({
@@ -79,7 +82,9 @@ serve(async (req) => {
         storage_path: filePath,
         content_type: file.type,
         size: file.size,
-        folder_id: folderId || null,
+        description: description || null,
+        document_category: category || null,
+        file_type: fileType || 'document',
         created_by: user.id,
       })
       .select()
