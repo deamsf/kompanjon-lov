@@ -19,7 +19,7 @@ export const FileManager = ({ fileType, showDocumentCategories = false }: FileMa
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<'architect_report' | 'permit' | 'photo' | 'offer' | 'bill' | 'other' | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
@@ -69,7 +69,7 @@ export const FileManager = ({ fileType, showDocumentCategories = false }: FileMa
     },
   });
 
-  const handleUpdateFileType = async (fileIds: string[], newType: string) => {
+  const handleUpdateFileType = async (fileIds: string[], newType: 'document' | 'bill' | 'offer' | 'photo') => {
     try {
       const { error } = await supabase
         .from('files')
@@ -85,6 +85,14 @@ export const FileManager = ({ fileType, showDocumentCategories = false }: FileMa
       toast.error("Failed to move files");
       console.error('Error moving files:', error);
     }
+  };
+
+  const handleFileSelect = (fileId: string) => {
+    setSelectedFiles(prev => 
+      prev.includes(fileId) 
+        ? prev.filter(id => id !== fileId)
+        : [...prev, fileId]
+    );
   };
 
   return (
@@ -122,14 +130,14 @@ export const FileManager = ({ fileType, showDocumentCategories = false }: FileMa
               files={files}
               isLoading={isLoading}
               selectedFiles={selectedFiles}
-              onFileSelect={setSelectedFiles}
+              onFileSelect={handleFileSelect}
             />
           ) : (
             <FileList
               files={files}
               isLoading={isLoading}
               selectedFiles={selectedFiles}
-              onFileSelect={setSelectedFiles}
+              onFileSelect={handleFileSelect}
             />
           )}
         </div>
