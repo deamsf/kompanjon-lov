@@ -384,6 +384,105 @@ export type Database = {
           },
         ]
       }
+      share_page_access: {
+        Row: {
+          granted_at: string | null
+          granted_by: string
+          partner_id: string
+          share_page_id: string
+        }
+        Insert: {
+          granted_at?: string | null
+          granted_by: string
+          partner_id: string
+          share_page_id: string
+        }
+        Update: {
+          granted_at?: string | null
+          granted_by?: string
+          partner_id?: string
+          share_page_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "share_page_access_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "share_page_access_share_page_id_fkey"
+            columns: ["share_page_id"]
+            isOneToOne: false
+            referencedRelation: "share_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      share_page_files: {
+        Row: {
+          added_at: string | null
+          added_by: string
+          file_id: string
+          share_page_id: string
+        }
+        Insert: {
+          added_at?: string | null
+          added_by: string
+          file_id: string
+          share_page_id: string
+        }
+        Update: {
+          added_at?: string | null
+          added_by?: string
+          file_id?: string
+          share_page_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "share_page_files_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "share_page_files_share_page_id_fkey"
+            columns: ["share_page_id"]
+            isOneToOne: false
+            referencedRelation: "share_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      share_pages: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          is_public: boolean | null
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
       shares: {
         Row: {
           access_password: string

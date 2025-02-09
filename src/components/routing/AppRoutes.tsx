@@ -1,3 +1,4 @@
+
 import { Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import Dashboard from "@/pages/Dashboard";
@@ -17,6 +18,7 @@ import ProjectSelection from "@/pages/ProjectSelection";
 import Index from "@/pages/Index";
 import Preferences from "@/pages/Preferences";
 import Account from "@/pages/Account";
+import Shares from "@/pages/Shares";
 
 export const AppRoutes = () => {
   return (
@@ -91,6 +93,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Photos />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/shares"
+        element={
+          <ProtectedRoute>
+            <Shares />
           </ProtectedRoute>
         }
       />

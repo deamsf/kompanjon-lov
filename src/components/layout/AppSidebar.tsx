@@ -179,17 +179,11 @@ export function AppSidebar() {
               </SidebarMenuButton>
               {isSubmenuOpen("resources") && (
                 <SidebarMenuSub>
-                  <SidebarMenuSubItem onClick={() => navigate("/documents")}>
-                    Documents
+                  <SidebarMenuSubItem onClick={() => navigate("/library")}>
+                    Library
                   </SidebarMenuSubItem>
-                  <SidebarMenuSubItem onClick={() => navigate("/bills")}>
-                    Bills
-                  </SidebarMenuSubItem>
-                  <SidebarMenuSubItem onClick={() => navigate("/offers")}>
-                    Offers
-                  </SidebarMenuSubItem>
-                  <SidebarMenuSubItem onClick={() => navigate("/photos")}>
-                    Photos
+                  <SidebarMenuSubItem onClick={() => navigate("/shares")}>
+                    Shares
                   </SidebarMenuSubItem>
                 </SidebarMenuSub>
               )}
