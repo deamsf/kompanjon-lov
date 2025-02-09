@@ -1,4 +1,3 @@
-
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -240,6 +239,21 @@ function ToolbarPlugin() {
   );
 }
 
+function OnChangePluginWrapper({ onChange }: { onChange: (html: string) => void }) {
+  const [editor] = useLexicalComposerContext();
+  
+  return (
+    <OnChangePlugin
+      onChange={(editorState: EditorState) => {
+        editorState.read(() => {
+          const html = $generateHtmlFromNodes(editor);
+          onChange(html);
+        });
+      }}
+    />
+  );
+}
+
 interface LexicalEditorProps {
   onChange: (html: string) => void;
   initialValue?: string;
@@ -293,16 +307,7 @@ export default function LexicalEditor({ onChange, initialValue }: LexicalEditorP
         <ListPlugin />
         <LinkPlugin />
         <MarkdownShortcutPlugin />
-        <OnChangePlugin
-          onChange={(editorState: EditorState) => {
-            editorState.read(() => {
-              const root = $getRoot();
-              const [currentEditor] = useLexicalComposerContext();
-              const html = $generateHtmlFromNodes(currentEditor);
-              onChange(html);
-            });
-          }}
-        />
+        <OnChangePluginWrapper onChange={onChange} />
         <HistoryPlugin />
       </div>
     </LexicalComposer>
