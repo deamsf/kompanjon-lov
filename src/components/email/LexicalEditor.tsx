@@ -1,4 +1,3 @@
-
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -77,12 +76,10 @@ function ToolbarPlugin() {
       setIsItalic(selection.hasFormat('italic'));
       setIsUnderline(selection.hasFormat('underline'));
 
-      // Check if selection has a link
       const nodes = selection.getNodes();
       const hasLink = nodes.some(node => $isLinkNode(node) || node.getParent()?.getParent()?.getType() === 'link');
       setIsLink(hasLink);
 
-      // Check if selection is in a list
       const parent = nodes[0].getParent();
       const isList = $isListItemNode(parent);
       setIsList(isList && parent?.getParent()?.getType() === 'ul');
@@ -122,7 +119,7 @@ function ToolbarPlugin() {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        selection.formatText('');
+        selection.removeFormat();
         selection.getNodes().forEach(node => {
           if ($isLinkNode(node)) {
             node.remove();
@@ -275,7 +272,7 @@ export default function LexicalEditor({ onChange, initialValue }: LexicalEditorP
           onChange={(editorState: EditorState) => {
             editorState.read(() => {
               const root = $getRoot();
-              // Convert to HTML to preserve formatting
+              const [editor] = useLexicalComposerContext();
               const html = $generateHtmlFromNodes(editor);
               onChange(html);
             });
