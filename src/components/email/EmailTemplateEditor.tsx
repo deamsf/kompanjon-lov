@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import LexicalEditor from "./LexicalEditor";
+import TiptapEditor from "./TiptapEditor";
 
 interface EmailTemplateEditorProps {
   defaultValues?: {
@@ -51,7 +51,7 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
       </div>
       <div>
         <Label htmlFor="body">Body</Label>
-        <LexicalEditor
+        <TiptapEditor
           onChange={setBody}
           initialValue={body}
         />
