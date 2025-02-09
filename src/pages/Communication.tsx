@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { Pencil, Trash2, Copy, Plus } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ProtectedRoute } from "@/components/routing/ProtectedRoute";
 import {
   Dialog,
   DialogContent,
@@ -33,7 +35,7 @@ interface EmailTemplate {
   user_id: string;
 }
 
-const Communication = () => {
+const CommunicationPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const queryClient = useQueryClient();
@@ -46,7 +48,10 @@ const Communication = () => {
         .select('*')
         .order('created_at');
       
-      if (error) throw error;
+      if (error) {
+        toast.error("Failed to fetch email templates");
+        throw error;
+      }
       return data;
     },
   });
@@ -252,5 +257,12 @@ const Communication = () => {
     </div>
   );
 };
+
+// Wrap the component with ProtectedRoute
+const Communication = () => (
+  <ProtectedRoute>
+    <CommunicationPage />
+  </ProtectedRoute>
+);
 
 export default Communication;
