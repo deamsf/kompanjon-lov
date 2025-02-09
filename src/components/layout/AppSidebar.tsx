@@ -179,7 +179,7 @@ export function AppSidebar() {
               </SidebarMenuButton>
               {isSubmenuOpen("resources") && (
                 <SidebarMenuSub>
-                  <SidebarMenuSubItem onClick={() => navigate("/library")}>
+                  <SidebarMenuSubItem onClick={() => navigate("/files")}>
                     Library
                   </SidebarMenuSubItem>
                   <SidebarMenuSubItem onClick={() => navigate("/shares")}>
