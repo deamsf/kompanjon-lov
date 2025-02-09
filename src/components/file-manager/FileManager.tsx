@@ -87,12 +87,30 @@ export const FileManager = ({ fileType, showDocumentCategories = false }: FileMa
     }
   };
 
-  const handleFileSelect = (fileId: string) => {
-    setSelectedFiles(prev => 
-      prev.includes(fileId) 
-        ? prev.filter(id => id !== fileId)
-        : [...prev, fileId]
-    );
+  const handleFileSelect = (fileIds: string | string[]) => {
+    if (Array.isArray(fileIds)) {
+      setSelectedFiles(fileIds);
+    } else {
+      setSelectedFiles(prev => 
+        prev.includes(fileIds) 
+          ? prev.filter(id => id !== fileIds)
+          : [...prev, fileIds]
+      );
+    }
+  };
+
+  const handleCategoryChange = (category: 'architect_report' | 'permit' | 'photo' | 'offer' | 'bill' | 'other' | null) => {
+    setSelectedCategory(category);
+  };
+
+  const handleSort = (field: 'name' | 'size' | 'type') => {
+    // Implement sorting logic here if needed
+    console.log('Sorting by:', field);
+  };
+
+  const handleShare = (fileId: string) => {
+    // Implement share logic here if needed
+    console.log('Sharing file:', fileId);
   };
 
   return (
@@ -112,7 +130,7 @@ export const FileManager = ({ fileType, showDocumentCategories = false }: FileMa
             selectedTags={selectedTags}
             onTagsChange={setSelectedTags}
             selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
+            onCategoryChange={handleCategoryChange}
             showCategories={showDocumentCategories}
           />
         </div>
@@ -138,6 +156,8 @@ export const FileManager = ({ fileType, showDocumentCategories = false }: FileMa
               isLoading={isLoading}
               selectedFiles={selectedFiles}
               onFileSelect={handleFileSelect}
+              onSort={handleSort}
+              onShare={handleShare}
             />
           )}
         </div>
