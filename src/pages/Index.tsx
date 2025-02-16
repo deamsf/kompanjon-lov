@@ -1,8 +1,10 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [email, setEmail] = useState("");
@@ -14,11 +16,20 @@ const Index = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate loading
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: "demo@example.com", // Temporary demo credentials
+        password: "demo12345",     // Temporary demo credentials
+      });
+
+      if (error) throw error;
+
       navigate("/dashboard");
-    }, 500);
+    } catch (error: any) {
+      console.error('Login error:', error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -27,7 +38,7 @@ const Index = () => {
         <CardContent className="pt-6">
           <h1 className="text-2xl font-bold text-center mb-2">Welcome</h1>
           <p className="text-center text-muted-foreground mb-6">
-            This is a demo version. All features are available without authentication.
+            This is a demo version. Click login to continue with demo credentials.
           </p>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
