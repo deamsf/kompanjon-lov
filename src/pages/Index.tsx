@@ -18,8 +18,8 @@ const Index = () => {
     
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: "jo@gmail.com", // Temporary demo credentials from auth logs
-        password: "demo12345",     // Temporary demo credentials
+        email: "jo@gmail.com", // Using known working email from auth logs
+        password: "demo123",    // Trying different password
       });
 
       if (error) throw error;
