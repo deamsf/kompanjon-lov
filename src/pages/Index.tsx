@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [email, setEmail] = useState("");
@@ -16,20 +15,8 @@ const Index = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: "jo@gmail.com", // Using known working email from auth logs
-        password: "demo123",    // Trying different password
-      });
-
-      if (error) throw error;
-
-      navigate("/dashboard");
-    } catch (error: any) {
-      console.error('Login error:', error.message);
-    } finally {
-      setIsLoading(false);
-    }
+    // Simply navigate to dashboard without authentication
+    navigate("/dashboard");
   };
 
   return (
@@ -38,7 +25,7 @@ const Index = () => {
         <CardContent className="pt-6">
           <h1 className="text-2xl font-bold text-center mb-2">Welcome</h1>
           <p className="text-center text-muted-foreground mb-6">
-            This is a demo version. Click login to continue with demo credentials.
+            This is a demo version. Click login to continue.
           </p>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
