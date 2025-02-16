@@ -28,9 +28,17 @@ export const CreateSharePageDialog = ({
     setIsLoading(true);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No authenticated user found");
+
       const { error } = await supabase
         .from('share_pages')
-        .insert({ name, description });
+        .insert({ 
+          name, 
+          description,
+          created_by: user.id,
+          is_public: false
+        });
 
       if (error) throw error;
 
