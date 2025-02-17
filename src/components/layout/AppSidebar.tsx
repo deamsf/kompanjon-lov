@@ -1,3 +1,4 @@
+
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -10,63 +11,16 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { Building2, FolderKanban, Users, MessageSquare, HelpCircle, LogOut, ChevronDown, ChevronRight, Construction, Minus, Plus, LayoutTemplate, Gauge, ProjectorIcon as ProjectIcon, Bot, Settings, SwitchCamera, User } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+import { Building2, FolderKanban, Users, MessageSquare, Bot, Settings, SwitchCamera, Construction, Minus, Plus, LayoutTemplate, Gauge, ProjectorIcon as ProjectIcon, ChevronDown, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { UserMenu } from "./UserMenu";
 
 export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [userId, setUserId] = useState<string | null>(null);
   const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [showProjectAddress, setShowProjectAddress] = useState(true);
-  const [isProjectActive, setIsProjectActive] = useState(true);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setUserId(session.user.id);
-      }
-    });
-  }, []);
-
-  const { data: profile } = useQuery({
-    queryKey: ['profile', userId],
-    queryFn: async () => {
-      if (!userId) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!userId
-  });
-
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      navigate("/");
-      toast.success("Signed out successfully");
-    } catch (error) {
-      toast.error("Error signing out");
-    }
-  };
 
   const toggleSubmenu = (menuName: string) => {
     setOpenMenus(prev => 
@@ -209,45 +163,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t p-4">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center space-x-2 w-full">
-              <Avatar>
-                <AvatarImage src="" />
-                <AvatarFallback>
-                  {profile?.first_name?.[0] || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col text-left">
-                <span className="text-sm font-medium">
-                  Welcome, {profile?.first_name || 'User'}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {profile?.email || ''}
-                </span>
-              </div>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuItem onClick={() => navigate("/account")}>
-              <User className="mr-2 h-4 w-4" />
-              <span>Account</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/preferences")}>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Preferences</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/project-settings")}>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Project Settings</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Sign Out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <UserMenu />
       </SidebarFooter>
     </Sidebar>
   );

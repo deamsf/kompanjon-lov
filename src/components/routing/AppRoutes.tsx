@@ -19,6 +19,7 @@ import Index from "@/pages/Index";
 import Preferences from "@/pages/Preferences";
 import Account from "@/pages/Account";
 import Shares from "@/pages/Shares";
+import Files from "@/pages/Files";
 
 export const AppRoutes = () => {
   return (
@@ -61,6 +62,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Planning />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/files"
+        element={
+          <ProtectedRoute>
+            <Files />
           </ProtectedRoute>
         }
       />
